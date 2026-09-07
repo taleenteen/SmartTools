@@ -51,6 +51,8 @@ SmartTools มี 2 ส่วนหลัก:
 
 โปรเจกต์นี้บนแดชบอร์ดชุดใหม่เป็น **Worker** ชื่อ `smart-tools` ไม่ใช่ Pages แบบเก่า
 
+**Deploy บน Cloudflare ยังค้างอยู่** — Git build ล้มที่ `compatibility_date` อนาคต (API 10021) รายละเอียดและสิ่งที่แก้ไปแล้วอยู่ใน [DEPLOY.md](./DEPLOY.md) อย่ากด Retry ของรอบที่ fail จนกว่าจะมีแพตช์ใหม่
+
 | ช่อง | ค่า |
 |---|---|
 | Build command | `bun run pages:build` |

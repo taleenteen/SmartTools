@@ -1,6 +1,8 @@
 # SmartTools agent and contributor rules
 
-This repo is a Cloudflare Pages bookmark app. A Vue 3 shell lives in `web/` (Bookmarks, Settings, Tools hub). Vanilla `config.html` is rollback only. Individual `tools/*.html` stay static. Do not rewrite `functions/`.
+This repo is a Cloudflare bookmark app (Git-connected **Worker** `smart-tools`, not classic Pages). A Vue 3 shell lives in `web/` (Bookmarks, Settings, Tools hub). Vanilla `config.html` is rollback only. Individual `tools/*.html` stay static. Do not rewrite `functions/`.
+
+Production Git deploy is **blocked**. Read `DEPLOY.md` before changing `wrangler.toml`, `_redirects`, or `scripts/pages-build.ts`. Do not retry failed Cloudflare builds.
 
 ## Stack
 
