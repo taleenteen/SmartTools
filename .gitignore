@@ -1,6 +1,7 @@
 node_modules/
 dist/
 web/dist/
+worker-build/
 .DS_Store
 Thumbs.db
 *.log

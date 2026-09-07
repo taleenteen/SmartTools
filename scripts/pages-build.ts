@@ -10,8 +10,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 const webDist = join(root, 'web', 'dist')
 
-async function run(cmd: string[]) {
-  const proc = Bun.spawn(cmd, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
+async function run(cmd: string[], cwd = root) {
+  const proc = Bun.spawn(cmd, { cwd, stdout: 'inherit', stderr: 'inherit' })
   const code = await proc.exited
   if (code !== 0) {
     throw new Error(`${cmd.join(' ')} failed with ${code}`)
@@ -19,8 +19,8 @@ async function run(cmd: string[]) {
 }
 
 await rm(dist, { recursive: true, force: true })
-await run(['bun', 'install', '--cwd', 'web'])
-await run(['bun', 'run', '--cwd', 'web', 'build'])
+await run(['bun', 'install'], join(root, 'web'))
+await run(['bun', 'run', 'build'], join(root, 'web'))
 await mkdir(dist, { recursive: true })
 await cp(webDist, dist, { recursive: true })
 
@@ -40,4 +40,24 @@ for (const file of staticCopies) {
 await cp(join(root, 'tools'), join(dist, 'tools'), { recursive: true })
 await cp(join(root, 'shared'), join(dist, 'shared'), { recursive: true })
 
-console.log('Pages bundle ready at dist/')
+const workerOut = join(root, 'worker-build')
+await rm(workerOut, { recursive: true, force: true })
+await run(
+  [
+    'bun',
+    'x',
+    'wrangler',
+    'pages',
+    'functions',
+    'build',
+    '--project-directory',
+    root,
+    '--outdir',
+    workerOut,
+    '--compatibility-date',
+    '2026-09-08',
+  ],
+  join(root, 'web'),
+)
+
+console.log('Pages bundle ready at dist/; worker at worker-build/')

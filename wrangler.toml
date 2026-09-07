@@ -1,6 +1,11 @@
-# Cloudflare Pages reads this because the new dashboard no longer
-# shows "Build output directory". Change `name` if it does not match
-# the Pages project name in the dashboard.
+# This Cloudflare project is a Worker (Git builds), not classic Pages.
+# CI runs `npx wrangler deploy` — do not use `wrangler pages deploy`.
 name = "smart-tools"
-pages_build_output_dir = "./dist"
+main = "./worker-build/index.js"
 compatibility_date = "2026-09-08"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/u/*"]

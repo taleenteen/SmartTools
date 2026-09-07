@@ -49,9 +49,15 @@ SmartTools มี 2 ส่วนหลัก:
 
 ## งานที่ต้องทำก่อนใช้งานเต็มที่
 
-Deploy ของ Vue ใช้คำสั่ง `bun run pages:build` แล้วอัปโหลดโฟลเดอร์ `dist`  
-แดชบอร์ดใหม่มัก**ไม่มีช่อง Build output directory** — ค่านี้กำหนดใน `wrangler.toml` เป็น `pages_build_output_dir = "./dist"`  
-**Root directory** ในแดชบอร์ดให้ว่างไว้
+โปรเจกต์นี้บนแดชบอร์ดชุดใหม่เป็น **Worker** ชื่อ `smart-tools` ไม่ใช่ Pages แบบเก่า
+
+| ช่อง | ค่า |
+|---|---|
+| Build command | `bun run pages:build` |
+| Deploy command | `npx wrangler deploy` |
+| Root directory | ว่าง |
+
+อย่าใช้ `wrangler pages deploy` — จะยิง API ของ Pages แล้วได้ Authentication 10000
 
 Deploy อย่างเดียว **ยังไม่พอ** ถ้ายังไม่ได้ผูก KV ระบบจะแสดงลิงก์จากไฟล์ `data.js` ใน repo ได้ แต่ **เซฟจากหลังบ้านออนไลน์ไม่ได้** (โหมดอ่านอย่างเดียว)
 
