@@ -1,6 +1,6 @@
 # Cloudflare Pages reads this because the new dashboard no longer
 # shows "Build output directory". Change `name` if it does not match
 # the Pages project name in the dashboard.
-name = "smarttools"
+name = "smart-tools"
 pages_build_output_dir = "./dist"
 compatibility_date = "2026-09-08"
