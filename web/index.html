@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="notion">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' x='-0.11em' font-size='90'>😺🏷</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTools</title>
+    <script>
+      (function () {
+        try {
+          var allowed = ['notion', 'nebula', 'stripe', 'dark', 'mint']
+          var legacy = {
+            'index1.html': 'nebula',
+            'index2.html': 'notion',
+            'index3.html': 'stripe',
+            'index4.html': 'dark',
+            'index5.html': 'mint',
+          }
+          var theme = localStorage.getItem('smarttools-theme')
+          if (!theme) {
+            var old = localStorage.getItem('fav_last_style')
+            theme = legacy[old] || 'notion'
+          }
+          var query = new URLSearchParams(location.search).get('theme')
+          if (query && allowed.indexOf(query) !== -1) theme = query
+          if (allowed.indexOf(theme) === -1) theme = 'notion'
+          document.documentElement.dataset.theme = theme
+          document.documentElement.classList.toggle('dark', theme === 'stripe' || theme === 'dark')
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

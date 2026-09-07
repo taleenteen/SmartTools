@@ -1,0 +1,213 @@
+/* Hex values live ONLY in this file. Components use semantic Tailwind tokens. */
+
+:root,
+[data-theme='notion'] {
+  color-scheme: light;
+  --background: #fafaf9;
+  --foreground: #37352f;
+  --card: #ffffff;
+  --card-foreground: #37352f;
+  --card-hover: #f7f6f3;
+  --popover: #ffffff;
+  --popover-foreground: #37352f;
+  --primary: #6e56cf;
+  --primary-foreground: #ffffff;
+  --primary-hover: #5946b2;
+  --primary-wash: #f0ecfa;
+  --secondary: #f7f6f3;
+  --secondary-foreground: #37352f;
+  --muted: #efeeeb;
+  --muted-foreground: #787774;
+  --accent: #f0ecfa;
+  --accent-foreground: #5946b2;
+  --destructive: #e03e3e;
+  --border: #ddd9d3;
+  --input: #ddd9d3;
+  --ring: #6e56cf;
+  --overlay: rgb(55 53 47 / 0.22);
+  --radius: 0.75rem;
+  --shadow-sm:
+    0 1px 3px rgb(55 53 47 / 0.08), 0 2px 8px rgb(55 53 47 / 0.07), 0 0 0 1px rgb(55 53 47 / 0.05);
+  --shadow-md:
+    0 3px 8px rgb(55 53 47 / 0.1), 0 6px 20px rgb(55 53 47 / 0.1), 0 0 0 1px rgb(55 53 47 / 0.05);
+  --shadow-lg:
+    0 8px 16px rgb(55 53 47 / 0.12), 0 16px 40px rgb(55 53 47 / 0.12), 0 0 0 1px rgb(55 53 47 / 0.06);
+  --bg-image: none;
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: var(--muted-foreground);
+  --chart-4: var(--secondary);
+  --chart-5: var(--border);
+}
+
+[data-theme='nebula'] {
+  color-scheme: light;
+  --background: #667eea;
+  --foreground: #2d2a4a;
+  --card: #ffffff;
+  --card-foreground: #333333;
+  --card-hover: #f7f5ff;
+  --popover: #ffffff;
+  --popover-foreground: #333333;
+  --primary: #667eea;
+  --primary-foreground: #ffffff;
+  --primary-hover: #5a67d8;
+  --primary-wash: rgb(102 126 234 / 0.12);
+  --secondary: #f3f0ff;
+  --secondary-foreground: #4c1d95;
+  --muted: #eeeafc;
+  --muted-foreground: #666666;
+  --accent: #764ba2;
+  --accent-foreground: #ffffff;
+  --destructive: #e03e3e;
+  --border: rgb(102 126 234 / 0.2);
+  --input: rgb(102 126 234 / 0.28);
+  --ring: #764ba2;
+  --overlay: rgb(0 0 0 / 0.28);
+  --radius: 1rem;
+  --shadow-sm: 0 4px 12px rgb(102 126 234 / 0.18);
+  --shadow-md: 0 10px 28px rgb(118 75 162 / 0.22);
+  --shadow-lg: 0 18px 40px rgb(102 126 234 / 0.28);
+  --bg-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+[data-theme='stripe'] {
+  color-scheme: dark;
+  --background: #0a2540;
+  --foreground: #ffffff;
+  --card: rgb(13 37 67 / 0.86);
+  --card-foreground: #ffffff;
+  --card-hover: rgb(18 48 86 / 0.95);
+  --popover: #0f2f52;
+  --popover-foreground: #ffffff;
+  --primary: #635bff;
+  --primary-foreground: #ffffff;
+  --primary-hover: #5147f5;
+  --primary-wash: rgb(99 91 255 / 0.16);
+  --secondary: #123456;
+  --secondary-foreground: #d6e4ff;
+  --muted: #123456;
+  --muted-foreground: rgb(255 255 255 / 0.62);
+  --accent: #00d4ff;
+  --accent-foreground: #0a2540;
+  --destructive: #f43f5e;
+  --border: rgb(99 91 255 / 0.28);
+  --input: rgb(99 91 255 / 0.35);
+  --ring: #00d4ff;
+  --overlay: rgb(2 10 24 / 0.55);
+  --radius: 0.75rem;
+  --shadow-sm: 0 4px 16px rgb(0 0 0 / 0.28);
+  --shadow-md: 0 12px 32px rgb(0 0 0 / 0.38);
+  --shadow-lg: 0 20px 48px rgb(0 0 0 / 0.45);
+  --bg-image:
+    radial-gradient(ellipse at 70% 5%, rgb(99 91 255 / 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 15% 85%, rgb(0 212 255 / 0.09) 0%, transparent 55%);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #111111;
+  --card-foreground: #ffffff;
+  --card-hover: #191919;
+  --popover: #191919;
+  --popover-foreground: #ffffff;
+  --primary: #0099ff;
+  --primary-foreground: #001018;
+  --primary-hover: #33adff;
+  --primary-wash: rgb(0 153 255 / 0.1);
+  --secondary: #191919;
+  --secondary-foreground: #ffffff;
+  --muted: #222222;
+  --muted-foreground: rgb(255 255 255 / 0.55);
+  --accent: #0099ff;
+  --accent-foreground: #001018;
+  --destructive: #f43f5e;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: #0099ff;
+  --overlay: rgb(0 0 0 / 0.62);
+  --radius: 0.75rem;
+  --shadow-sm: 0 0 0 1px rgb(0 153 255 / 0.12);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(0 153 255 / 0.18);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.65), 0 0 24px rgb(0 153 255 / 0.12);
+  --bg-image: none;
+}
+
+[data-theme='mint'] {
+  color-scheme: light;
+  --background: #fafbfc;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --card-hover: #f3f4f6;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #0d9373;
+  --primary-foreground: #ffffff;
+  --primary-hover: #087f5b;
+  --primary-wash: rgb(13 147 115 / 0.1);
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --muted: #e5e7eb;
+  --muted-foreground: #6b7280;
+  --accent: rgb(13 147 115 / 0.12);
+  --accent-foreground: #087f5b;
+  --destructive: #dc2626;
+  --border: rgb(0 0 0 / 0.07);
+  --input: rgb(0 0 0 / 0.11);
+  --ring: #0d9373;
+  --overlay: rgb(17 24 39 / 0.28);
+  --radius: 0.75rem;
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.03);
+  --shadow-md: 0 4px 14px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 10px 30px rgb(0 0 0 / 0.08), 0 2px 6px rgb(0 0 0 / 0.03);
+  --bg-image: none;
+}
+
+[data-theme] {
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: var(--muted-foreground);
+  --chart-4: var(--secondary);
+  --chart-5: var(--border);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  background-image: var(--bg-image);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+[data-theme='stripe'] body {
+  background-image:
+    var(--bg-image),
+    radial-gradient(rgb(255 255 255 / 0.03) 1px, transparent 1px);
+  background-size: auto, 28px 28px;
+}

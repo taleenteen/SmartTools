@@ -1,0 +1,11 @@
+{
+  "name": "smarttools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --cwd web dev",
+    "build": "bun run --cwd web build",
+    "check": "bun run --cwd web check",
+    "pages:build": "bun run scripts/pages-build.ts"
+  }
+}

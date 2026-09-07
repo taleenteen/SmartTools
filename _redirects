@@ -1,10 +1,14 @@
 /l /index.html 200
-/t /toolsindex.html 200
-/tool /toolsindex.html 200
-/tools /toolsindex.html 200
-/c /config.html 200
+/t /index.html 200
+/tool /index.html 200
+/c /index.html 200
+/settings /index.html 200
 
 # 2026-05-22 启用:Cloudflare Pages 不识别 functions/@[[slug]].js(部署后整个 functions bundle 挂掉,
 # 表现为 1101 + /api/* 全部失联),已删除该文件,改走 200 rewrite 把 /@<slug> 内部转给 /u/<slug>。
 # URL 栏保持 /@<slug> 不变,服务端复用 functions/u/[[slug]].js。
 /@:slug /u/:slug 200
+
+# Vue SPA fallback. Real files (config.html, about.html, tools/*.html, /api, data.js) still win.
+# /tools is the static tools/ folder — hub is /t, not /tools.
+/* /index.html 200

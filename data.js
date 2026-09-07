@@ -294,7 +294,7 @@ var sections = [
                 icon: '👨🏻‍🔧',
                 id: 'ohthercalc-tools',
                 title: '在线工具',
-                url: '/toolsindex.html',
+                url: '/t',
                 type: 'expandable',
                 desc: '在线小工具',
                 subCards: [

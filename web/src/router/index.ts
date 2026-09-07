@@ -1,0 +1,41 @@
+import { createRouter, createWebHistory } from 'vue-router'
+
+import HomeView from '@/views/HomeView.vue'
+import ToolsView from '@/views/ToolsView.vue'
+import SettingsLayout from '@/views/settings/SettingsLayout.vue'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsLayout,
+    },
+    {
+      path: '/c',
+      redirect: '/settings',
+    },
+    {
+      path: '/t',
+      name: 'tools',
+      component: ToolsView,
+    },
+    {
+      path: '/tool',
+      redirect: '/t',
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'public-home',
+      component: HomeView,
+    },
+  ],
+})
+
+export default router
