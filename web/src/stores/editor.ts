@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, toRaw } from 'vue'
 import { defineStore } from 'pinia'
 
 import { EncryptedSaveError, prepareSectionsForSave, serializeDataJs } from '@/lib/serialize-data-js'
@@ -8,8 +8,16 @@ import type { BookmarkCard, BookmarkSection, DataMeta } from '@/types/bookmark'
 
 export const UNCLASSIFIED_KEY = 'custom_unclassified'
 
+function safeClone<T>(val: T): T {
+  try {
+    return structuredClone(toRaw(val))
+  } catch {
+    return JSON.parse(JSON.stringify(val))
+  }
+}
+
 function cloneSections(sections: BookmarkSection[]): BookmarkSection[] {
-  return structuredClone(sections)
+  return safeClone(sections)
 }
 
 function newId(prefix: string) {
@@ -90,7 +98,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (!source) return
     const card = source.cards[index]
     if (!card) return
-    const moving = copy ? structuredClone(card) : card
+    const moving = copy ? safeClone(card) : card
     if (copy) moving.id = newId('card')
     appendCards(targetKey, [moving])
     if (!copy) removeCard(index)
