@@ -317,21 +317,23 @@ async function runMigrate(dryRun: boolean) {
     </div>
 
     <Dialog :open="!!formOpen" @update:open="(open: boolean) => !open && (formOpen = null)">
-      <DialogContent class="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{{ formOpen === 'create' ? t.userNew : t.userReset }}</DialogTitle>
+      <DialogContent class="sm:max-w-md p-6">
+        <DialogHeader class="pb-2 border-b border-border/40">
+          <DialogTitle class="text-lg font-semibold">{{ formOpen === 'create' ? t.userNew : t.userReset }}</DialogTitle>
         </DialogHeader>
-        <label class="block text-sm">
-          {{ t.username }}
-          <Input v-model="formName" class="mt-1" :readonly="formOpen === 'reset'" autocomplete="off" />
-        </label>
-        <p v-if="formOpen === 'create'" class="text-xs text-muted-foreground">{{ t.userNameHint }}</p>
-        <label class="block text-sm">
-          {{ t.password }}
-          <Input v-model="formPassword" class="mt-1" type="password" autocomplete="new-password" />
-        </label>
-        <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
-        <DialogFooter>
+        <div class="space-y-4 py-2 text-sm">
+          <label class="block">
+            <span class="text-xs font-medium text-foreground">{{ t.username }}</span>
+            <Input v-model="formName" class="mt-1" :readonly="formOpen === 'reset'" autocomplete="off" />
+          </label>
+          <p v-if="formOpen === 'create'" class="-mt-2 text-xs text-muted-foreground">{{ t.userNameHint }}</p>
+          <label class="block">
+            <span class="text-xs font-medium text-foreground">{{ t.password }}</span>
+            <Input v-model="formPassword" class="mt-1" type="password" autocomplete="new-password" />
+          </label>
+          <p v-if="formError" class="text-xs text-destructive">{{ formError }}</p>
+        </div>
+        <DialogFooter class="pt-2 border-t border-border/40 gap-2 sm:gap-2">
           <Button variant="outline" @click="formOpen = null">{{ t.cancel }}</Button>
           <Button @click="submitForm">{{ t.confirm }}</Button>
         </DialogFooter>
@@ -339,47 +341,51 @@ async function runMigrate(dryRun: boolean) {
     </Dialog>
 
     <Dialog :open="!!forceUser" @update:open="(open: boolean) => !open && (forceUser = '')">
-      <DialogContent class="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{{ t.forceTitle }}</DialogTitle>
+      <DialogContent class="sm:max-w-md p-6">
+        <DialogHeader class="pb-2 border-b border-border/40">
+          <DialogTitle class="text-lg font-semibold text-destructive">{{ t.forceTitle }}</DialogTitle>
         </DialogHeader>
-        <p class="text-sm text-muted-foreground">{{ t.forceHint }}</p>
-        <p class="font-mono text-sm">{{ forceUser }}</p>
-        <template v-if="!forceKey">
-          <label class="block text-sm">
-            {{ t.forceConfirmLabel }}
-            <span class="mt-1 block font-mono text-xs">{{ forceExpected }}</span>
-            <Input v-model="forceTyped" class="mt-2 font-mono" autocomplete="off" />
-          </label>
-        </template>
-        <p v-else class="text-sm">{{ t.forceArchived }}</p>
-        <p v-if="forceKey" class="font-mono text-xs break-all">{{ forceKey }}</p>
-        <p v-if="forceError" class="text-sm text-destructive">{{ forceError }}</p>
-        <DialogFooter>
+        <div class="space-y-3 py-2 text-sm">
+          <p class="text-xs text-muted-foreground">{{ t.forceHint }}</p>
+          <p class="font-mono text-sm font-semibold text-foreground rounded-lg bg-muted p-2">{{ forceUser }}</p>
+          <template v-if="!forceKey">
+            <label class="block">
+              <span class="text-xs font-medium text-foreground">{{ t.forceConfirmLabel }}</span>
+              <span class="mt-1 block font-mono text-xs text-muted-foreground">{{ forceExpected }}</span>
+              <Input v-model="forceTyped" class="mt-1.5 font-mono" autocomplete="off" />
+            </label>
+          </template>
+          <p v-else class="text-xs text-foreground">{{ t.forceArchived }}</p>
+          <p v-if="forceKey" class="font-mono text-xs break-all rounded-lg bg-muted p-2">{{ forceKey }}</p>
+          <p v-if="forceError" class="text-xs text-destructive">{{ forceError }}</p>
+        </div>
+        <DialogFooter class="pt-2 border-t border-border/40 gap-2 sm:gap-2">
           <Button variant="outline" @click="forceUser = ''">{{ t.cancel }}</Button>
-          <Button v-if="!forceKey" :disabled="forceBusy" @click="runArchive">{{ t.forceArchive }}</Button>
+          <Button v-if="!forceKey" :disabled="forceBusy" variant="destructive" @click="runArchive">{{ t.forceArchive }}</Button>
           <Button v-else variant="outline" @click="downloadForce">{{ t.forceDownload }}</Button>
-          <Button v-if="forceKey" :disabled="forceBusy || !forceDownloaded" @click="runCleanup">{{ t.forceCleanup }}</Button>
+          <Button v-if="forceKey" :disabled="forceBusy || !forceDownloaded" variant="destructive" @click="runCleanup">{{ t.forceCleanup }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
     <Dialog :open="!!slugUser" @update:open="(open: boolean) => !open && (slugUser = '')">
-      <DialogContent class="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{{ t.userSlug }}</DialogTitle>
+      <DialogContent class="sm:max-w-md p-6">
+        <DialogHeader class="pb-2 border-b border-border/40">
+          <DialogTitle class="text-lg font-semibold">{{ t.userSlug }}</DialogTitle>
         </DialogHeader>
-        <p class="font-mono text-sm">{{ slugUser }}</p>
-        <label class="flex items-center gap-2 text-sm">
-          <input v-model="slugEnabled" type="checkbox" />
-          {{ t.slugEnabled }}
-        </label>
-        <label class="block text-sm">
-          {{ t.slugField }}
-          <Input v-model="slugValue" class="mt-1 font-mono" autocomplete="off" maxlength="32" />
-        </label>
-        <p v-if="liveSlugError || slugError" class="text-sm text-destructive">{{ slugError || liveSlugError }}</p>
-        <DialogFooter>
+        <div class="space-y-3 py-2 text-sm">
+          <p class="font-mono text-sm font-semibold text-foreground rounded-lg bg-muted p-2">{{ slugUser }}</p>
+          <label class="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+            <input v-model="slugEnabled" type="checkbox" class="size-4 rounded border-input text-primary focus:ring-ring cursor-pointer" />
+            <span>{{ t.slugEnabled }}</span>
+          </label>
+          <label class="block">
+            <span class="text-xs font-medium text-foreground">{{ t.slugField }}</span>
+            <Input v-model="slugValue" class="mt-1 font-mono" autocomplete="off" maxlength="32" placeholder="username-slug" />
+          </label>
+          <p v-if="liveSlugError || slugError" class="text-xs text-destructive">{{ slugError || liveSlugError }}</p>
+        </div>
+        <DialogFooter class="pt-2 border-t border-border/40 gap-2 sm:gap-2">
           <Button variant="outline" @click="slugUser = ''">{{ t.cancel }}</Button>
           <Button :disabled="slugBusy || !!liveSlugError" @click="saveSlug">{{ t.slugSave }}</Button>
         </DialogFooter>

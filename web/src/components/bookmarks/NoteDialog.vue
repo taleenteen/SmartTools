@@ -72,18 +72,22 @@ async function save() {
 
 <template>
   <Dialog :open="open" @update:open="(value: boolean) => !value && ui.closeNote()">
-    <DialogContent class="max-w-lg">
-      <DialogHeader>
-        <DialogTitle>{{ t.note }}</DialogTitle>
+    <DialogContent class="sm:max-w-xl max-h-[85vh] flex flex-col p-6 gap-0">
+      <DialogHeader class="shrink-0 pb-3 border-b border-border/50">
+        <DialogTitle class="text-lg font-semibold">{{ t.note }}</DialogTitle>
       </DialogHeader>
-      <Textarea v-if="editing" v-model="draft" class="min-h-40 font-mono text-sm" />
-      <div
-        v-else
-        class="prose prose-sm max-w-none text-sm leading-6 text-foreground [&_a]:text-primary [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3"
-        @click.self="followLink"
-        v-html="html || `<p class='text-muted-foreground'>${t.noteEmpty}</p>`"
-      />
-      <DialogFooter class="gap-2">
+
+      <div class="flex-1 overflow-y-auto py-4 pr-1 [scrollbar-width:thin]">
+        <Textarea v-if="editing" v-model="draft" class="min-h-48 font-mono text-sm" placeholder="Markdown note..." />
+        <div
+          v-else
+          class="prose prose-sm max-w-none text-sm leading-6 text-foreground [&_a]:text-primary [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3"
+          @click.self="followLink"
+          v-html="html || `<p class='text-muted-foreground'>${t.noteEmpty}</p>`"
+        />
+      </div>
+
+      <DialogFooter class="shrink-0 pt-3 border-t border-border/50 gap-2 sm:gap-2">
         <Button v-if="ui.note?.href" variant="outline" @click="followLink">{{ t.noteOpenLink }}</Button>
         <Button v-if="canEdit && !editing" variant="secondary" @click="editing = true">{{ t.noteEdit }}</Button>
         <Button v-if="editing" @click="save()">{{ t.noteSave }}</Button>

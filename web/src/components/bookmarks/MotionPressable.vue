@@ -38,7 +38,7 @@ const emit = defineEmits<{
       :rel="external ? 'noopener noreferrer' : undefined"
       :class="
         cn(
-          'block rounded-xl border border-border bg-card text-card-foreground shadow-sm outline-none',
+          'relative block rounded-xl border border-border bg-card text-card-foreground shadow-sm outline-none',
           'transition-[background-color,border-color,box-shadow,color] duration-200',
           'hover:border-ring/40 hover:bg-card-hover hover:shadow-md',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -54,7 +54,7 @@ const emit = defineEmits<{
       v-else
       :class="
         cn(
-          'block rounded-xl border border-border bg-card text-card-foreground shadow-sm outline-none',
+          'relative block rounded-xl border border-border bg-card text-card-foreground shadow-sm outline-none',
           'transition-[background-color,border-color,box-shadow,color] duration-200',
           'hover:border-ring/40 hover:bg-card-hover hover:shadow-md',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',

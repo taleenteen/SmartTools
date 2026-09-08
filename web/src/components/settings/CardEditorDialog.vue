@@ -103,12 +103,12 @@ function submit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-h-[90vh] max-w-lg overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>{{ card ? t.edit : t.addCard }}</DialogTitle>
+    <DialogContent class="sm:max-w-xl md:max-w-2xl max-h-[88vh] flex flex-col p-6 gap-0">
+      <DialogHeader class="shrink-0 pb-3 border-b border-border/50">
+        <DialogTitle class="text-lg font-semibold">{{ card ? t.edit : t.addCard }}</DialogTitle>
       </DialogHeader>
 
-      <div class="space-y-4 py-1 text-sm">
+      <div class="flex-1 overflow-y-auto space-y-4 py-4 pr-1.5 [scrollbar-width:thin] text-sm">
         <div
           v-if="draft.pushedBy"
           class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/60 px-3 py-2"
@@ -125,36 +125,38 @@ function submit() {
           </Button>
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-foreground">
-            {{ t.cardTitle }} <span class="text-destructive">*</span>
-          </label>
-          <Input
-            v-model="draft.title"
-            class="mt-1"
-            :class="submitted && !draft.title?.trim() ? 'border-destructive focus-visible:ring-destructive' : ''"
-            placeholder="e.g. GitHub"
-          />
-          <p v-if="submitted && !draft.title?.trim()" class="mt-1 text-xs text-destructive">
-            {{ t.titleRequired }}
-          </p>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="block text-xs font-medium text-foreground">
+              {{ t.cardTitle }} <span class="text-destructive">*</span>
+            </label>
+            <Input
+              v-model="draft.title"
+              class="mt-1"
+              :class="submitted && !draft.title?.trim() ? 'border-destructive focus-visible:ring-destructive' : ''"
+              placeholder="e.g. GitHub"
+            />
+            <p v-if="submitted && !draft.title?.trim()" class="mt-1 text-xs text-destructive">
+              {{ t.titleRequired }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-foreground">
+              {{ t.cardUrl }}
+            </label>
+            <Input v-model="draft.url" class="mt-1" placeholder="https://example.com" />
+          </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-foreground">
-            {{ t.cardUrl }}
-          </label>
-          <Input v-model="draft.url" class="mt-1" placeholder="https://example.com" />
-        </div>
-
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="block text-xs font-medium text-foreground">
               {{ t.cardType }}
             </label>
             <select
               v-model="draft.type"
-              class="border-input mt-1 h-9 w-full rounded-md border bg-card px-3 py-1 text-sm text-foreground shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              class="border-input mt-1 h-9 w-full rounded-md border bg-card px-3 py-1 text-sm text-foreground shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
             >
               <option value="simple">{{ t.typeSimple }}</option>
               <option value="desc-clickable">{{ t.typeDesc }}</option>
@@ -212,7 +214,7 @@ function submit() {
         </div>
 
         <!-- Expandable Subcards -->
-        <div v-if="draft.type === 'expandable'" class="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+        <div v-if="draft.type === 'expandable'" class="space-y-2 rounded-xl border border-border bg-muted/30 p-3.5">
           <div class="flex items-center justify-between">
             <p class="text-xs font-medium text-foreground">{{ t.subcards }}</p>
             <Button type="button" size="sm" variant="outline" class="h-7 gap-1 text-xs" @click="addSub">
@@ -255,7 +257,7 @@ function submit() {
         <div class="rounded-xl border border-border overflow-hidden">
           <button
             type="button"
-            class="flex w-full items-center justify-between bg-muted/40 px-3.5 py-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+            class="flex w-full items-center justify-between bg-muted/40 px-3.5 py-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted cursor-pointer"
             @click="showAdvanced = !showAdvanced"
           >
             <span>{{ t.advancedSettings }}</span>
@@ -265,8 +267,8 @@ function submit() {
             />
           </button>
 
-          <div v-if="showAdvanced" class="space-y-3.5 p-3.5">
-            <div v-if="draft.type === 'desc-clickable'" class="space-y-2">
+          <div v-if="showAdvanced" class="space-y-3.5 p-3.5 bg-card/40">
+            <div v-if="draft.type === 'desc-clickable'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label class="block text-xs font-medium text-foreground">
                   {{ t.cardDescClickable }}
@@ -281,8 +283,8 @@ function submit() {
               </div>
             </div>
 
-            <label class="flex items-center gap-2 text-xs font-medium text-foreground">
-              <input v-model="draft.isLocal" type="checkbox" class="size-4 rounded border-input text-primary focus:ring-ring" />
+            <label class="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+              <input v-model="draft.isLocal" type="checkbox" class="size-4 rounded border-input text-primary focus:ring-ring cursor-pointer" />
               <span>{{ t.cardLocal }}</span>
             </label>
 
@@ -296,7 +298,7 @@ function submit() {
         </div>
       </div>
 
-      <DialogFooter class="gap-2 sm:gap-0">
+      <DialogFooter class="shrink-0 pt-3 border-t border-border/50 gap-2 sm:gap-2">
         <Button variant="outline" @click="emit('update:open', false)">{{ t.cancel }}</Button>
         <Button :disabled="!draft.title?.trim()" @click="submit">{{ t.save }}</Button>
       </DialogFooter>

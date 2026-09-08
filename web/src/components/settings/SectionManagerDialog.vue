@@ -44,19 +44,21 @@ function create() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-w-sm">
+    <DialogContent class="sm:max-w-md p-6">
       <DialogHeader>
-        <DialogTitle>{{ t.addSection }}</DialogTitle>
+        <DialogTitle class="text-lg font-semibold">{{ t.addSection }}</DialogTitle>
       </DialogHeader>
-      <label class="block text-sm">
-        {{ t.sectionLabel }}
-        <Input v-model="label" class="mt-1" />
-      </label>
-      <label class="mt-3 flex items-center gap-2 text-sm">
-        <input v-model="encrypted" type="checkbox" />
-        {{ t.sectionEncrypt }}
-      </label>
-      <DialogFooter>
+      <div class="space-y-4 py-2 text-sm">
+        <label class="block">
+          <span class="text-xs font-medium text-foreground">{{ t.sectionLabel }}</span>
+          <Input v-model="label" class="mt-1.5" placeholder="e.g. 🛠️ Dev Tools" />
+        </label>
+        <label class="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+          <input v-model="encrypted" type="checkbox" class="size-4 rounded border-input text-primary focus:ring-ring cursor-pointer" />
+          <span>{{ t.sectionEncrypt }}</span>
+        </label>
+      </div>
+      <DialogFooter class="gap-2 sm:gap-2">
         <Button variant="outline" @click="emit('update:open', false)">{{ t.cancel }}</Button>
         <Button :disabled="!label.trim()" @click="create">{{ t.save }}</Button>
       </DialogFooter>

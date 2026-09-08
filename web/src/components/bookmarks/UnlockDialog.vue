@@ -35,10 +35,10 @@ async function submit() {
 
 <template>
   <Dialog :open="encrypt.dialogOpen" @update:open="(open: boolean) => !open && encrypt.closeDialog()">
-    <DialogContent class="max-w-sm">
+    <DialogContent class="sm:max-w-md p-6">
       <DialogHeader>
-        <DialogTitle>{{ t.unlock }}</DialogTitle>
-        <DialogDescription>{{ t.unlockHint }}</DialogDescription>
+        <DialogTitle class="text-lg font-semibold">{{ t.unlock }}</DialogTitle>
+        <DialogDescription class="text-xs text-muted-foreground">{{ t.unlockHint }}</DialogDescription>
       </DialogHeader>
       <form class="space-y-3" @submit.prevent="submit">
         <Input

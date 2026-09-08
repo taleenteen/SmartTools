@@ -58,7 +58,7 @@ function toggle() {
   </section>
   <section v-else :id="section.anchor || section.key" class="space-y-3">
     <h2 class="text-sm font-semibold tracking-wide text-foreground">{{ section.label }}</h2>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
       <BookmarkCard
         v-for="(card, index) in shown"
         :key="cardIdentity(card, `${section.key}-${index}`)"

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, FileText } from '@lucide/vue'
 import { computed } from 'vue'
-import { Motion } from 'motion-v'
 
 import BookmarkIcon from '@/components/bookmarks/BookmarkIcon.vue'
 import MotionPressable from '@/components/bookmarks/MotionPressable.vue'
@@ -54,7 +53,7 @@ function openNoteDialog(event: MouseEvent) {
 </script>
 
 <template>
-  <div class="relative" :class="expanded ? 'z-30' : 'z-0'">
+  <div class="relative w-full self-start" :class="expanded ? 'z-30' : 'z-0'">
     <MotionPressable
       :href="href"
       :local="card.isLocal"
@@ -93,14 +92,15 @@ function openNoteDialog(event: MouseEvent) {
       <button
         v-if="isExpandable"
         type="button"
-        class="absolute top-0 right-0 flex h-full w-11 items-center justify-center rounded-r-xl text-muted-foreground transition-colors hover:bg-primary-wash hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+        class="absolute top-0 right-0 flex h-full w-11 items-center justify-center rounded-r-xl text-muted-foreground transition-colors hover:bg-primary-wash hover:text-primary focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         :aria-expanded="expanded"
         :aria-label="t.toggleLinks"
         @click="onExpand"
       >
-        <Motion :animate="{ rotate: expanded ? 180 : 0 }" :transition="{ duration: 0.18 }">
-          <ChevronDown class="size-4" />
-        </Motion>
+        <ChevronDown
+          class="size-4 transition-transform duration-200"
+          :class="expanded ? 'rotate-180 text-primary' : ''"
+        />
       </button>
     </MotionPressable>
     <SubCardList

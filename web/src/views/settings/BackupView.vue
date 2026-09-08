@@ -141,21 +141,21 @@ async function confirm() {
     <p v-if="backups.error" class="mt-2 text-sm text-destructive">{{ t.saveFailed }}</p>
 
     <Dialog :open="!!backups.preview" @update:open="(open: boolean) => !open && (backups.preview = '')">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{{ backups.previewName }}</DialogTitle>
+      <DialogContent class="sm:max-w-3xl max-h-[85vh] flex flex-col p-6 gap-0">
+        <DialogHeader class="shrink-0 pb-3 border-b border-border/50">
+          <DialogTitle class="text-lg font-semibold">{{ backups.previewName }}</DialogTitle>
         </DialogHeader>
-        <pre class="max-h-80 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs">{{ backups.preview.slice(0, 8000) }}</pre>
+        <pre class="flex-1 overflow-auto rounded-lg bg-muted p-4 font-mono text-xs my-4 max-h-[60vh] [scrollbar-width:thin]">{{ backups.preview.slice(0, 8000) }}</pre>
       </DialogContent>
     </Dialog>
 
     <Dialog :open="!!confirmKind" @update:open="(open: boolean) => !open && (confirmKind = null)">
-      <DialogContent class="max-w-sm">
+      <DialogContent class="sm:max-w-md p-6">
         <DialogHeader>
-          <DialogTitle>{{ confirmKind === 'restore' ? t.backupConfirmRestore : t.backupConfirmDelete }}</DialogTitle>
+          <DialogTitle class="text-lg font-semibold">{{ confirmKind === 'restore' ? t.backupConfirmRestore : t.backupConfirmDelete }}</DialogTitle>
         </DialogHeader>
-        <p class="font-mono text-xs break-all text-muted-foreground">{{ confirmName }}</p>
-        <DialogFooter>
+        <p class="font-mono text-xs break-all text-muted-foreground my-3 rounded-lg bg-muted p-2.5">{{ confirmName }}</p>
+        <DialogFooter class="gap-2 sm:gap-2">
           <Button variant="outline" @click="confirmKind = null">{{ t.cancel }}</Button>
           <Button
             :class="confirmKind === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''"
