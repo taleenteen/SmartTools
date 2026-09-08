@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { Button } from '@/components/ui/button'
 import ThemeSwitcher from '@/components/bookmarks/ThemeSwitcher.vue'
@@ -19,15 +19,37 @@ import { useInboxStore } from '@/stores/inbox'
 import { useModeStore } from '@/stores/mode'
 import { useEditorStore } from '@/stores/editor'
 
+const route = useRoute()
+const router = useRouter()
 const session = useSessionStore()
 const inbox = useInboxStore()
 const mode = useModeStore()
 const editor = useEditorStore()
-const tab = ref<'cards' | 'backup' | 'source' | 'io' | 'account' | 'users' | 'inbox'>('cards')
+
+type TabKey = 'cards' | 'backup' | 'source' | 'io' | 'account' | 'users' | 'inbox'
+const validTabs: TabKey[] = ['cards', 'backup', 'source', 'io', 'account', 'users', 'inbox']
+
+const tab = computed<TabKey>({
+  get() {
+    const queryTab = route.query.tab as string
+    if (validTabs.includes(queryTab as TabKey)) {
+      return queryTab as TabKey
+    }
+    return 'cards'
+  },
+  set(newTab) {
+    void router.replace({
+      query: {
+        ...route.query,
+        tab: newTab,
+      },
+    })
+  },
+})
 
 const navItems = computed(() => {
   const local = mode.kind === 'local'
-  const items: { id: typeof tab.value; label: string }[] = [
+  const items: { id: TabKey; label: string }[] = [
     { id: 'cards', label: t.navCards },
     { id: 'backup', label: t.navBackup },
   ]
@@ -97,12 +119,12 @@ async function connectLocal() {
     </p>
     <LoginView v-else-if="!session.loggedIn" />
     <div v-else>
-      <nav class="mb-6 flex flex-wrap gap-2">
+      <nav class="mb-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
         <Button
           v-for="item in navItems"
           :key="item.id"
           size="sm"
-          class="rounded-full"
+          class="shrink-0 rounded-full"
           :variant="tab === item.id ? 'default' : 'outline'"
           @click="tab = item.id"
         >

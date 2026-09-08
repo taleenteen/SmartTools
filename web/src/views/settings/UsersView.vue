@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Globe, KeyRound, Plus, Trash2, User } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { Button } from '@/components/ui/button'
@@ -233,7 +234,10 @@ async function runMigrate(dryRun: boolean) {
       >
         {{ t.archivesShow }}
       </Button>
-      <Button v-if="panel === 'list'" size="sm" class="ml-auto rounded-full" @click="openCreate">{{ t.userNew }}</Button>
+      <Button v-if="panel === 'list'" size="sm" class="ml-auto rounded-full" @click="openCreate">
+        <Plus class="mr-1.5 size-3.5" />
+        {{ t.userNew }}
+      </Button>
     </div>
 
     <ArchivesView v-if="panel === 'archives'" />
@@ -242,28 +246,70 @@ async function runMigrate(dryRun: boolean) {
       <p class="mb-3 text-sm text-muted-foreground">{{ t.usersHint }}</p>
       <p v-if="users.status === 'loading'" class="text-sm text-muted-foreground">{{ t.checkingSession }}</p>
       <p v-else-if="!users.items.length" class="text-sm text-muted-foreground">{{ t.usersEmpty }}</p>
-      <ul v-else class="space-y-2">
+      <ul v-else class="space-y-2.5">
         <li
           v-for="row in users.items"
           :key="row.username"
-          class="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5 shadow-xs transition-colors hover:border-ring/30"
         >
-          <div class="min-w-0 flex-1">
-            <p class="font-mono text-sm">
-              {{ row.username }}
-              <span class="ml-2 text-xs text-muted-foreground">{{ row.role }} · {{ row.algo }}</span>
-            </p>
-            <p class="text-xs text-muted-foreground">
-              {{ row.hasData ? t.userHasData : t.userNoData }}
-              <span v-if="row.publicEnabled && row.publicSlug" class="text-primary"> · {{ row.publicSlug }}</span>
-            </p>
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <User class="size-4" />
+            </div>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="font-mono text-sm font-semibold text-foreground">{{ row.username }}</span>
+                <span
+                  class="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                  :class="row.role === 'admin' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'"
+                >
+                  {{ row.role }}
+                </span>
+                <span
+                  class="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                  :class="row.hasData ? 'bg-primary-wash text-primary' : 'bg-muted text-muted-foreground'"
+                >
+                  {{ row.hasData ? t.userHasData : t.userNoData }}
+                </span>
+                <span
+                  v-if="row.publicEnabled && row.publicSlug"
+                  class="inline-flex items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-foreground"
+                >
+                  <Globe class="size-2.5" />
+                  {{ row.publicSlug }}
+                </span>
+              </div>
+              <p class="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                {{ row.algo }}
+              </p>
+            </div>
           </div>
-          <Button size="sm" variant="outline" @click="openSlug(row)">{{ t.userSlug }}</Button>
-          <Button size="sm" variant="outline" @click="openReset(row)">{{ t.userReset }}</Button>
-          <template v-if="row.username !== session.username">
-            <Button v-if="row.hasData" size="sm" variant="secondary" @click="openForce(row)">{{ t.userForce }}</Button>
-            <Button v-else size="sm" variant="ghost" @click="removeEmpty(row)">{{ t.delete }}</Button>
-          </template>
+
+          <div class="flex flex-wrap items-center gap-1.5 ml-auto">
+            <Button size="sm" variant="outline" class="h-8 gap-1 rounded-lg px-2.5 text-xs" @click="openSlug(row)">
+              <Globe class="size-3" />
+              <span>{{ t.userSlug }}</span>
+            </Button>
+            <Button size="sm" variant="outline" class="h-8 gap-1 rounded-lg px-2.5 text-xs" @click="openReset(row)">
+              <KeyRound class="size-3" />
+              <span>{{ t.userReset }}</span>
+            </Button>
+            <template v-if="row.username !== session.username">
+              <Button v-if="row.hasData" size="sm" variant="secondary" class="h-8 gap-1 rounded-lg px-2.5 text-xs" @click="openForce(row)">
+                {{ t.userForce }}
+              </Button>
+              <Button
+                v-else
+                size="sm"
+                variant="ghost"
+                class="h-8 gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                @click="removeEmpty(row)"
+              >
+                <Trash2 class="size-3.5" />
+                <span class="sr-only">{{ t.delete }}</span>
+              </Button>
+            </template>
+          </div>
         </li>
       </ul>
       <p v-if="message" class="mt-2 text-sm text-muted-foreground">{{ message }}</p>

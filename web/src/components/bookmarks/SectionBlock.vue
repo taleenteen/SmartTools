@@ -9,9 +9,15 @@ import { cardIdentity, detectLayout, isEncryptedLocked, visibleCountFor } from '
 import { useEncryptStore } from '@/stores/encrypt'
 import type { BookmarkSection } from '@/types/bookmark'
 
-const props = defineProps<{
-  section: BookmarkSection
-}>()
+const props = withDefaults(
+  defineProps<{
+    section: BookmarkSection
+    filterQuery?: string
+  }>(),
+  {
+    filterQuery: '',
+  },
+)
 
 const layout = ref(detectLayout())
 const expanded = ref(false)
@@ -27,10 +33,13 @@ const encrypt = useEncryptStore()
 const locked = computed(() => isEncryptedLocked(props.section))
 const cap = computed(() => visibleCountFor(props.section, layout.value))
 const shown = computed(() => {
-  if (!props.section.dynamic || expanded.value) return props.section.cards
+  if (props.filterQuery || !props.section.dynamic || expanded.value) return props.section.cards
   return props.section.cards.slice(0, cap.value)
 })
-const hiddenCount = computed(() => Math.max(0, props.section.cards.length - shown.value.length))
+const hiddenCount = computed(() => {
+  if (props.filterQuery) return 0
+  return Math.max(0, props.section.cards.length - shown.value.length)
+})
 
 function toggle() {
   expanded.value = !expanded.value
@@ -49,7 +58,7 @@ function toggle() {
   </section>
   <section v-else :id="section.anchor || section.key" class="space-y-3">
     <h2 class="text-sm font-semibold tracking-wide text-foreground">{{ section.label }}</h2>
-    <div class="flex flex-col gap-2.5">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <BookmarkCard
         v-for="(card, index) in shown"
         :key="cardIdentity(card, `${section.key}-${index}`)"
@@ -59,7 +68,7 @@ function toggle() {
       />
     </div>
     <button
-      v-if="hiddenCount > 0 || (section.dynamic && expanded)"
+      v-if="!filterQuery && (hiddenCount > 0 || (section.dynamic && expanded))"
       type="button"
       class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       @click="toggle"

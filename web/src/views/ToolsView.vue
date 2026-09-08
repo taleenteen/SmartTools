@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ExternalLink } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 
 import ThemeSwitcher from '@/components/bookmarks/ThemeSwitcher.vue'
@@ -54,7 +55,7 @@ function openTool(href: string, external?: boolean) {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-svh w-full max-w-md flex-col px-5 pb-16 pt-14">
+  <main class="mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-2xl lg:max-w-4xl lg:px-6">
     <header class="mb-8 flex items-start justify-between gap-3">
       <div>
         <p class="text-sm text-muted-foreground">{{ t.appName }}</p>
@@ -72,33 +73,36 @@ function openTool(href: string, external?: boolean) {
       </div>
     </header>
 
-    <ul class="space-y-3">
+    <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <li v-for="tool in tools" :key="tool.href">
         <button
           type="button"
-          class="flex w-full items-start gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-ring"
+          class="flex h-full w-full items-start gap-3 rounded-xl border border-border bg-card p-4 text-left shadow-xs transition-colors hover:border-ring/40 hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-ring"
           @click="openTool(tool.href)"
         >
-          <span class="text-xl">{{ tool.icon }}</span>
-          <span>
-            <span class="block font-medium">{{ tool.title }}</span>
-            <span class="text-sm text-muted-foreground">{{ tool.desc }}</span>
+          <span class="text-2xl">{{ tool.icon }}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block font-medium text-foreground">{{ tool.title }}</span>
+            <span class="mt-0.5 block text-xs text-muted-foreground">{{ tool.desc }}</span>
           </span>
         </button>
       </li>
-      <li v-for="group in groups" :key="group.title" class="rounded-xl border border-border bg-card p-4">
-        <p class="font-medium">{{ group.icon }} {{ group.title }}</p>
-        <p class="mb-2 text-sm text-muted-foreground">{{ group.desc }}</p>
-        <div class="flex flex-col gap-2">
+      <li v-for="group in groups" :key="group.title" class="rounded-xl border border-border bg-card p-4 shadow-xs sm:col-span-2">
+        <p class="font-medium text-foreground">{{ group.icon }} {{ group.title }}</p>
+        <p class="mb-3 text-xs text-muted-foreground">{{ group.desc }}</p>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
             v-for="item in group.items"
             :key="item.href"
             type="button"
-            class="rounded-lg bg-muted px-3 py-2 text-left text-sm transition-colors hover:bg-card-hover"
+            class="flex items-center justify-between rounded-lg bg-muted/70 px-3 py-2.5 text-left text-sm transition-colors hover:bg-card-hover hover:text-foreground"
             @click="openTool(item.href, item.external)"
           >
-            {{ item.icon }} {{ item.title }}
-            <span class="ml-2 text-xs text-muted-foreground">{{ item.desc }}</span>
+            <div class="min-w-0 flex-1 truncate">
+              <span class="font-medium text-foreground">{{ item.icon }} {{ item.title }}</span>
+              <span class="ml-2 text-xs text-muted-foreground">{{ item.desc }}</span>
+            </div>
+            <ExternalLink v-if="item.external" class="ml-2 size-3.5 shrink-0 text-muted-foreground" />
           </button>
         </div>
       </li>

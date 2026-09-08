@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown } from '@lucide/vue'
+import { ChevronDown, FileText } from '@lucide/vue'
 import { computed } from 'vue'
 import { Motion } from 'motion-v'
 
@@ -26,6 +26,7 @@ const isExpandable = computed(() => props.card.type === 'expandable')
 const isDescClickable = computed(
   () => props.card.type === 'desc-clickable' || (!!props.card.descClickable && !!props.card.descUrl),
 )
+const hasNote = computed(() => !!effectiveComment(props.card, props.cardId))
 
 function onExpand(event: Event) {
   event.preventDefault()
@@ -40,10 +41,9 @@ function onDescClick(event: MouseEvent) {
   window.open(descHref.value, '_blank', 'noopener,noreferrer')
 }
 
-function onCardClick(event: MouseEvent) {
-  const comment = effectiveComment(props.card, props.cardId)
-  if (!comment) return
+function openNoteDialog(event: MouseEvent) {
   event.preventDefault()
+  event.stopPropagation()
   ui.openNote({
     cardId: props.cardId,
     card: props.card,
@@ -59,14 +59,25 @@ function onCardClick(event: MouseEvent) {
       :href="href"
       :local="card.isLocal"
       :class="isExpandable ? 'pr-12' : undefined"
-      @click="onCardClick"
     >
       <div class="flex items-start gap-3 p-3.5">
         <BookmarkIcon :icon="card.icon" :icon-img="card.iconImg" />
         <div class="min-w-0 flex-1">
-          <h3 class="truncate text-sm font-semibold text-foreground">
-            {{ card.title }}
-          </h3>
+          <div class="flex items-center gap-1.5">
+            <h3 class="truncate text-sm font-semibold text-foreground">
+              {{ card.title }}
+            </h3>
+            <button
+              v-if="hasNote"
+              type="button"
+              class="inline-flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-secondary text-muted-foreground transition-colors hover:bg-primary-wash hover:text-primary focus-visible:ring-1 focus-visible:ring-ring"
+              :title="t.note"
+              @click="openNoteDialog"
+            >
+              <FileText class="size-2.5" />
+              <span>{{ t.note }}</span>
+            </button>
+          </div>
           <p
             v-if="isDescClickable && card.descClickable"
             class="mt-0.5 truncate text-xs text-primary underline-offset-2 hover:underline"
