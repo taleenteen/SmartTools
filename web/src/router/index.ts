@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import HomeView from '@/views/HomeView.vue'
+import MangaView from '@/views/MangaView.vue'
 import ToolsView from '@/views/ToolsView.vue'
 import SettingsLayout from '@/views/settings/SettingsLayout.vue'
 
@@ -11,6 +12,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/manga',
+      name: 'manga',
+      component: MangaView,
     },
     {
       path: '/settings',

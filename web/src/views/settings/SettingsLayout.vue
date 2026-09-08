@@ -9,6 +9,7 @@ import { useSessionStore } from '@/stores/session'
 import UnlockDialog from '@/components/bookmarks/UnlockDialog.vue'
 import LoginView from '@/views/settings/LoginView.vue'
 import CardsView from '@/views/settings/CardsView.vue'
+import MangaSettingsTab from '@/views/settings/MangaSettingsTab.vue'
 import BackupView from '@/views/settings/BackupView.vue'
 import SourceView from '@/views/settings/SourceView.vue'
 import ImportExportView from '@/views/settings/ImportExportView.vue'
@@ -26,8 +27,8 @@ const inbox = useInboxStore()
 const mode = useModeStore()
 const editor = useEditorStore()
 
-type TabKey = 'cards' | 'backup' | 'source' | 'io' | 'account' | 'users' | 'inbox'
-const validTabs: TabKey[] = ['cards', 'backup', 'source', 'io', 'account', 'users', 'inbox']
+type TabKey = 'cards' | 'manga' | 'backup' | 'source' | 'io' | 'account' | 'users' | 'inbox'
+const validTabs: TabKey[] = ['cards', 'manga', 'backup', 'source', 'io', 'account', 'users', 'inbox']
 
 const tab = computed<TabKey>({
   get() {
@@ -51,6 +52,7 @@ const navItems = computed(() => {
   const local = mode.kind === 'local'
   const items: { id: TabKey; label: string }[] = [
     { id: 'cards', label: t.navCards },
+    { id: 'manga', label: t.manga },
     { id: 'backup', label: t.navBackup },
   ]
   if (!local) {
@@ -138,6 +140,7 @@ async function connectLocal() {
         </Button>
       </nav>
       <CardsView v-if="tab === 'cards'" />
+      <MangaSettingsTab v-else-if="tab === 'manga'" />
       <BackupView v-else-if="tab === 'backup'" />
       <SourceView v-else-if="tab === 'source'" />
       <ImportExportView v-else-if="tab === 'io'" />

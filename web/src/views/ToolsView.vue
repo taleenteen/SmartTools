@@ -67,6 +67,9 @@ function openTool(href: string, external?: boolean) {
           <RouterLink to="/">{{ t.toolsFav }}</RouterLink>
         </Button>
         <Button as-child size="sm" variant="outline" class="rounded-full">
+          <RouterLink to="/manga">{{ t.manga }}</RouterLink>
+        </Button>
+        <Button as-child size="sm" variant="outline" class="rounded-full">
           <a href="/about.html">{{ t.toolsAbout }}</a>
         </Button>
         <ThemeSwitcher />

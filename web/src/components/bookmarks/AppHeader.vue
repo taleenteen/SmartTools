@@ -32,6 +32,9 @@ onMounted(async () => {
     </div>
     <div class="flex items-center gap-2">
       <Button as-child size="sm" variant="outline" class="rounded-full">
+        <RouterLink to="/manga" :title="t.mangaSubtitle">{{ t.manga }}</RouterLink>
+      </Button>
+      <Button as-child size="sm" variant="outline" class="rounded-full">
         <RouterLink to="/t" :title="t.toolsHint">{{ t.tools }}</RouterLink>
       </Button>
       <Button v-if="viewer.isAdminView || session.loggedIn" as-child size="sm" class="rounded-full">
