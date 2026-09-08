@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Crop, ImagePlus, Minus, Plus, Sparkles, Upload } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import ImageCropDialog from '@/components/manga/ImageCropDialog.vue'
 import { Button } from '@/components/ui/button'
@@ -13,22 +14,30 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { useManga } from '@/composables/useManga'
 import { t } from '@/i18n/th'
 import {
   detectChapterPattern,
   resolveChapterUrl,
   type MangaItem,
 } from '@/lib/manga'
+import { useModeStore } from '@/stores/mode'
+import { useSessionStore } from '@/stores/session'
 
 const props = defineProps<{
   open: boolean
   manga?: MangaItem | null
+  saveHandler?: (item: MangaItem) => Promise<void>
 }>()
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'save', item: MangaItem): void
 }>()
+
+const { saveManga } = useManga()
+const session = useSessionStore()
+const mode = useModeStore()
 
 const title = ref('')
 const currentChapter = ref<number>(1)
@@ -37,6 +46,8 @@ const latestUrl = ref('')
 const coverUrl = ref('')
 const note = ref('')
 const errors = ref<{ title?: string; pattern?: string }>({})
+const saving = ref(false)
+const saveError = ref('')
 
 // Cropper state
 const cropOpen = ref(false)
@@ -47,6 +58,8 @@ watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
+      saving.value = false
+      saveError.value = ''
       if (props.manga) {
         title.value = props.manga.title
         currentChapter.value = props.manga.currentChapter || 1
@@ -138,8 +151,11 @@ function validate(): boolean {
   return true
 }
 
-function handleSave() {
+async function handleSave() {
   if (!validate()) return
+
+  saving.value = true
+  saveError.value = ''
 
   const item: MangaItem = {
     id: props.manga?.id || `manga_${Math.random().toString(36).slice(2, 9)}`,
@@ -152,8 +168,19 @@ function handleSave() {
     updatedAt: new Date().toISOString(),
   }
 
-  emit('save', item)
-  emit('update:open', false)
+  try {
+    if (props.saveHandler) {
+      await props.saveHandler(item)
+    } else {
+      await saveManga(item)
+    }
+    emit('save', item)
+    emit('update:open', false)
+  } catch (err) {
+    saveError.value = err instanceof Error ? err.message : t.mangaSaveFailed
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -368,12 +395,29 @@ function handleSave() {
         </div>
       </form>
 
+      <div v-if="saveError" class="px-6 py-2.5 bg-destructive/10 border-t border-destructive/20 text-xs text-destructive flex items-center justify-between gap-2">
+        <span>{{ saveError }}</span>
+        <Button
+          v-if="!session.loggedIn && mode.kind !== 'local'"
+          as-child
+          size="sm"
+          variant="destructive"
+          class="h-7 px-2.5 text-xs rounded-full"
+        >
+          <RouterLink to="/settings">{{ t.login }}</RouterLink>
+        </Button>
+      </div>
+
       <DialogFooter class="px-6 py-4 shrink-0 border-t border-border/50 flex items-center justify-end gap-2 bg-muted/10">
-        <Button variant="outline" type="button" @click="emit('update:open', false)">
+        <Button variant="outline" type="button" :disabled="saving" @click="emit('update:open', false)">
           {{ t.cancel }}
         </Button>
-        <Button type="button" @click="handleSave">
-          {{ t.save }}
+        <Button type="button" :disabled="saving" @click="handleSave">
+          <span v-if="saving" class="flex items-center gap-1.5">
+            <span class="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            {{ t.mangaSaving }}
+          </span>
+          <span v-else>{{ t.save }}</span>
         </Button>
       </DialogFooter>
     </DialogContent>

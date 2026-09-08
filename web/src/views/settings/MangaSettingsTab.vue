@@ -25,7 +25,7 @@ import {
 import { useEditorStore } from '@/stores/editor'
 
 const editor = useEditorStore()
-const { mangaList, saveManga, removeManga } = useManga()
+const { mangaList, removeManga } = useManga()
 
 const editorOpen = ref(false)
 const editingManga = ref<MangaItem | null>(null)
@@ -47,12 +47,17 @@ function askDelete(item: MangaItem) {
 
 async function confirmDelete() {
   if (deleteTarget.value) {
-    await removeManga(deleteTarget.value.id)
-    deleteTarget.value = null
+    try {
+      await removeManga(deleteTarget.value.id)
+    } catch (err) {
+      console.error('Failed to remove manga:', err)
+    } finally {
+      deleteTarget.value = null
+    }
   }
 }
 
-function moveManga(index: number, delta: number) {
+async function moveManga(index: number, delta: number) {
   const { sections, mangaSection } = ensureMangaSection(editor.sections)
   const next = index + delta
   if (next < 0 || next >= mangaSection.cards.length) return
@@ -66,7 +71,11 @@ function moveManga(index: number, delta: number) {
 
   editor.sections = sections.map((s) => (s.key === MANGA_SECTION_KEY ? { ...s, cards: copy } : s))
   editor.dirty = true
-  void editor.save()
+  try {
+    await editor.save()
+  } catch (err) {
+    console.error('Failed to save reordered manga:', err)
+  }
 }
 </script>
 
@@ -177,7 +186,6 @@ function moveManga(index: number, delta: number) {
     <MangaEditorDialog
       v-model:open="editorOpen"
       :manga="editingManga"
-      @save="saveManga"
     />
 
     <!-- Delete Confirmation -->

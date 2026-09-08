@@ -23,6 +23,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { t } from '@/i18n/th'
 import { resolveChapterUrl, type MangaItem } from '@/lib/manga'
+import { useModeStore } from '@/stores/mode'
+import { useSessionStore } from '@/stores/session'
 
 const props = defineProps<{
   open: boolean
@@ -35,6 +37,9 @@ const emit = defineEmits<{
   (e: 'edit', manga: MangaItem): void
   (e: 'delete', manga: MangaItem): void
 }>()
+
+const session = useSessionStore()
+const mode = useModeStore()
 
 const draftChapter = ref<number>(1)
 const draftOverrideUrl = ref('')
@@ -273,17 +278,24 @@ function confirmDelete() {
         </div>
 
         <!-- Footer Actions -->
-        <DialogFooter class="p-4 shrink-0 border-t border-border flex items-center justify-end gap-2 bg-muted/10">
-          <Button variant="outline" type="button" @click="emit('update:open', false)">
-            {{ t.cancel }}
-          </Button>
-          <Button
-            type="button"
-            :disabled="!isDirty"
-            @click="handleSaveProgress"
-          >
-            {{ t.save }}
-          </Button>
+        <DialogFooter class="p-4 shrink-0 border-t border-border flex flex-wrap items-center justify-between gap-2 bg-muted/10">
+          <div class="text-xs text-muted-foreground">
+            <span v-if="!session.loggedIn && mode.kind !== 'local'" class="text-amber-600 dark:text-amber-400 font-medium">
+              {{ t.mangaNeedLogin }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button variant="outline" type="button" @click="emit('update:open', false)">
+              {{ t.cancel }}
+            </Button>
+            <Button
+              type="button"
+              :disabled="!isDirty || (!session.loggedIn && mode.kind !== 'local')"
+              @click="handleSaveProgress"
+            >
+              {{ t.save }}
+            </Button>
+          </div>
         </DialogFooter>
       </div>
     </DialogContent>

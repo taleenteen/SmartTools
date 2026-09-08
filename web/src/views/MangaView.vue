@@ -7,6 +7,16 @@ import ThemeSwitcher from '@/components/bookmarks/ThemeSwitcher.vue'
 import MangaCard from '@/components/manga/MangaCard.vue'
 import MangaDetailsDialog from '@/components/manga/MangaDetailsDialog.vue'
 import MangaEditorDialog from '@/components/manga/MangaEditorDialog.vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useManga } from '@/composables/useManga'
@@ -14,19 +24,23 @@ import { t } from '@/i18n/th'
 import { readPublicSlug } from '@/lib/public-slug'
 import { useBookmarksStore } from '@/stores/bookmarks'
 import { useEditorStore } from '@/stores/editor'
+import { useModeStore } from '@/stores/mode'
 import { useSessionStore } from '@/stores/session'
 import type { MangaItem } from '@/lib/manga'
 
 const bookmarks = useBookmarksStore()
 const editor = useEditorStore()
 const session = useSessionStore()
-const { mangaList, saveManga, stepChapter, updateChapter, removeManga } = useManga()
+const mode = useModeStore()
+const { mangaList, stepChapter, updateChapter, removeManga } = useManga()
 
 const searchQuery = ref('')
 const selectedManga = ref<MangaItem | null>(null)
 const detailsOpen = ref(false)
 const editorOpen = ref(false)
 const editingManga = ref<MangaItem | null>(null)
+const showLoginAlert = ref(false)
+const actionError = ref('')
 
 const filteredManga = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -41,11 +55,17 @@ const filteredManga = computed(() => {
 
 onMounted(async () => {
   await session.check()
+  if (mode.kind === 'local') {
+    await mode.restoreFolder().catch(() => undefined)
+    if (mode.folderReady && editor.status !== 'ready') {
+      await editor.load().catch(() => undefined)
+    }
+  }
+  if (session.loggedIn && editor.status !== 'ready') {
+    await editor.load().catch(() => undefined)
+  }
   if (bookmarks.status === 'idle') {
     await bookmarks.load(readPublicSlug()).catch(() => undefined)
-  }
-  if (session.loggedIn && editor.status === 'idle') {
-    await editor.load().catch(() => undefined)
   }
 })
 
@@ -55,41 +75,76 @@ function openDetails(item: MangaItem) {
 }
 
 function openAdd() {
+  if (!session.loggedIn && mode.kind !== 'local') {
+    showLoginAlert.value = true
+    return
+  }
   editingManga.value = null
   editorOpen.value = true
 }
 
 function openEdit(item: MangaItem) {
+  if (!session.loggedIn && mode.kind !== 'local') {
+    showLoginAlert.value = true
+    return
+  }
   editingManga.value = { ...item }
   editorOpen.value = true
 }
 
-async function handleSave(item: MangaItem) {
-  await saveManga(item)
+function handleSave(item: MangaItem) {
+  actionError.value = ''
   if (selectedManga.value && selectedManga.value.id === item.id) {
     selectedManga.value = item
   }
 }
 
 async function handleStep(item: MangaItem, delta: number) {
-  await stepChapter(item.id, delta)
-  if (selectedManga.value && selectedManga.value.id === item.id) {
-    selectedManga.value.currentChapter += delta
+  if (!session.loggedIn && mode.kind !== 'local') {
+    showLoginAlert.value = true
+    return
+  }
+  actionError.value = ''
+  try {
+    await stepChapter(item.id, delta)
+    if (selectedManga.value && selectedManga.value.id === item.id) {
+      selectedManga.value.currentChapter += delta
+    }
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : t.mangaSaveFailed
   }
 }
 
 async function handleUpdateChapter(item: MangaItem, chapter: number, overrideUrl?: string) {
-  await updateChapter(item.id, chapter, overrideUrl)
-  if (selectedManga.value && selectedManga.value.id === item.id) {
-    selectedManga.value.currentChapter = chapter
-    selectedManga.value.latestUrl = overrideUrl
+  if (!session.loggedIn && mode.kind !== 'local') {
+    showLoginAlert.value = true
+    return
+  }
+  actionError.value = ''
+  try {
+    await updateChapter(item.id, chapter, overrideUrl)
+    if (selectedManga.value && selectedManga.value.id === item.id) {
+      selectedManga.value.currentChapter = chapter
+      selectedManga.value.latestUrl = overrideUrl
+    }
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : t.mangaSaveFailed
   }
 }
 
 async function handleDelete(item: MangaItem) {
-  await removeManga(item.id)
-  if (selectedManga.value?.id === item.id) {
-    selectedManga.value = null
+  if (!session.loggedIn && mode.kind !== 'local') {
+    showLoginAlert.value = true
+    return
+  }
+  actionError.value = ''
+  try {
+    await removeManga(item.id)
+    if (selectedManga.value?.id === item.id) {
+      selectedManga.value = null
+    }
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : t.mangaSaveFailed
   }
 }
 </script>
@@ -119,9 +174,43 @@ async function handleDelete(item: MangaItem) {
         >
           <RouterLink to="/settings">{{ t.settings }}</RouterLink>
         </Button>
+        <Button
+          v-else
+          as-child
+          size="sm"
+          variant="outline"
+          class="rounded-full"
+        >
+          <RouterLink to="/settings">{{ t.login }}</RouterLink>
+        </Button>
         <ThemeSwitcher />
       </div>
     </header>
+
+    <!-- Visitor Notice Banner -->
+    <div
+      v-if="!session.loggedIn && mode.kind !== 'local' && session.status === 'ready'"
+      class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary-wash p-4 text-xs text-foreground shadow-xs"
+    >
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex size-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+        <p class="leading-relaxed">{{ t.mangaVisitorNotice }}</p>
+      </div>
+      <Button as-child size="sm" class="rounded-full shrink-0 shadow-xs">
+        <RouterLink to="/settings">{{ t.login }}</RouterLink>
+      </Button>
+    </div>
+
+    <!-- Error Banner if action failed -->
+    <div
+      v-if="actionError"
+      class="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs text-destructive shadow-xs"
+    >
+      <span>{{ actionError }}</span>
+      <Button size="sm" variant="ghost" class="h-6 px-2 text-xs" @click="actionError = ''">
+        &times;
+      </Button>
+    </div>
 
     <!-- Search & Action Bar -->
     <div class="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -193,5 +282,23 @@ async function handleDelete(item: MangaItem) {
       :manga="editingManga"
       @save="handleSave"
     />
+
+    <!-- Login Required Alert Dialog -->
+    <AlertDialog :open="showLoginAlert" @update:open="(val: boolean) => (showLoginAlert = val)">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ t.mangaNeedLogin }}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ t.mangaVisitorNotice }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{{ t.cancel }}</AlertDialogCancel>
+          <AlertDialogAction as-child>
+            <RouterLink to="/settings">{{ t.login }}</RouterLink>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </main>
 </template>

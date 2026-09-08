@@ -271,6 +271,11 @@ export const t = {
   mangaQuickStep: 'เพิ่มตอน +1',
   mangaDetails: 'รายละเอียดมังงะ',
   mangaNote: 'บันทึกเพิ่มเติม (Note)',
+  mangaNeedLogin: 'กรุณาเข้าสู่ระบบเพื่อเพิ่มหรือแก้ไขมังงะ',
+  mangaLoginPrompt: 'เข้าสู่ระบบเพื่อบันทึกข้อมูล',
+  mangaSaving: 'กำลังบันทึก…',
+  mangaSaveFailed: 'บันทึกไม่สำเร็จ กรุณาตรวจสอบการเข้าสู่ระบบหรือการเชื่อมต่อ',
+  mangaVisitorNotice: 'คุณกำลังดูในฐานะผู้เยี่ยมชม เข้าสู่ระบบเพื่อจัดการมังงะและบันทึกลง Cloudflare KV',
 } as const
 
 export type Messages = typeof t
