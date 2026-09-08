@@ -30,14 +30,14 @@ onMounted(async () => {
         {{ viewer.slug || viewer.username }}
       </p>
     </div>
-    <div class="flex items-center gap-2">
-      <Button as-child size="sm" variant="outline" class="rounded-full">
+    <div class="flex flex-wrap items-center gap-2.5">
+      <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
         <RouterLink to="/manga" :title="t.mangaSubtitle">{{ t.manga }}</RouterLink>
       </Button>
-      <Button as-child size="sm" variant="outline" class="rounded-full">
+      <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
         <RouterLink to="/t" :title="t.toolsHint">{{ t.tools }}</RouterLink>
       </Button>
-      <Button v-if="viewer.isAdminView || session.loggedIn" as-child size="sm" class="rounded-full">
+      <Button v-if="viewer.isAdminView || session.loggedIn" as-child class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
         <RouterLink to="/settings" :title="t.settingsHint">
           {{ t.settings }}
           <span

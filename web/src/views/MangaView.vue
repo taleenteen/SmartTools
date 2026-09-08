@@ -159,27 +159,25 @@ async function handleDelete(item: MangaItem) {
         <p class="mt-1 text-xs text-muted-foreground">{{ t.mangaSubtitle }}</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <Button as-child size="sm" variant="outline" class="rounded-full">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <RouterLink to="/">{{ t.bookmarks }}</RouterLink>
         </Button>
-        <Button as-child size="sm" variant="outline" class="rounded-full">
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <RouterLink to="/t">{{ t.tools }}</RouterLink>
         </Button>
         <Button
           v-if="session.loggedIn"
           as-child
-          size="sm"
-          class="rounded-full"
+          class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all"
         >
           <RouterLink to="/settings">{{ t.settings }}</RouterLink>
         </Button>
         <Button
           v-else
           as-child
-          size="sm"
           variant="outline"
-          class="rounded-full"
+          class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all"
         >
           <RouterLink to="/settings">{{ t.login }}</RouterLink>
         </Button>
@@ -190,13 +188,13 @@ async function handleDelete(item: MangaItem) {
     <!-- Visitor Notice Banner -->
     <div
       v-if="!session.loggedIn && mode.kind !== 'local' && session.status === 'ready'"
-      class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary-wash p-4 text-xs text-foreground shadow-xs"
+      class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary-wash p-4 text-xs sm:text-sm text-foreground shadow-xs"
     >
       <div class="flex items-center gap-2.5">
         <span class="inline-flex size-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
         <p class="leading-relaxed">{{ t.mangaVisitorNotice }}</p>
       </div>
-      <Button as-child size="sm" class="rounded-full shrink-0 shadow-xs">
+      <Button as-child class="h-9 px-4 rounded-full text-xs sm:text-sm font-medium shrink-0 shadow-xs">
         <RouterLink to="/settings">{{ t.login }}</RouterLink>
       </Button>
     </div>
@@ -204,7 +202,7 @@ async function handleDelete(item: MangaItem) {
     <!-- Error Banner if action failed -->
     <div
       v-if="actionError"
-      class="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs text-destructive shadow-xs"
+      class="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs sm:text-sm text-destructive shadow-xs"
     >
       <span>{{ actionError }}</span>
       <Button size="sm" variant="ghost" class="h-6 px-2 text-xs" @click="actionError = ''">
@@ -213,23 +211,23 @@ async function handleDelete(item: MangaItem) {
     </div>
 
     <!-- Search & Action Bar -->
-    <div class="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div class="relative flex-1 max-w-md">
-        <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <div class="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      <div class="relative flex-1 max-w-lg">
+        <Search class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
         <Input
           v-model="searchQuery"
-          class="h-10 pl-9 rounded-full bg-card shadow-xs"
+          class="h-12 pl-11 pr-4 text-sm sm:text-base rounded-full bg-card shadow-sm border-border/80 focus-visible:ring-2"
           :placeholder="t.mangaSearchPlaceholder"
         />
       </div>
 
-      <div class="flex items-center justify-between sm:justify-end gap-3">
-        <span class="text-xs text-muted-foreground">
+      <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+        <span class="text-sm font-medium text-muted-foreground px-1">
           {{ filteredManga.length }} เรื่อง
         </span>
 
-        <Button size="sm" class="rounded-full shadow-xs" @click="openAdd">
-          <Plus class="mr-1.5 size-3.5" />
+        <Button class="h-12 px-6 rounded-full text-sm sm:text-base font-semibold shadow-sm hover:shadow-md transition-all gap-2" @click="openAdd">
+          <Plus class="size-5" />
           {{ t.mangaAdd }}
         </Button>
       </div>
@@ -238,25 +236,25 @@ async function handleDelete(item: MangaItem) {
     <!-- Empty State -->
     <div
       v-if="!filteredManga.length"
-      class="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/40 p-12 text-center"
+      class="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/40 p-12 sm:p-16 text-center"
     >
-      <div class="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground mb-4">
-        <BookOpen class="size-7" />
+      <div class="flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground mb-4 shadow-xs">
+        <BookOpen class="size-8" />
       </div>
-      <h3 class="text-base font-semibold text-foreground">{{ t.mangaEmpty }}</h3>
-      <p class="mt-1 max-w-sm text-xs text-muted-foreground">
+      <h3 class="text-lg font-semibold text-foreground">{{ t.mangaEmpty }}</h3>
+      <p class="mt-1.5 max-w-sm text-xs sm:text-sm text-muted-foreground leading-relaxed">
         {{ t.mangaEmptyHint }}
       </p>
-      <Button size="sm" class="mt-5 rounded-full" @click="openAdd">
-        <Plus class="mr-1.5 size-3.5" />
+      <Button class="mt-6 h-11 px-6 rounded-full text-sm font-semibold shadow-sm gap-2" @click="openAdd">
+        <Plus class="size-4.5" />
         {{ t.mangaAdd }}
       </Button>
     </div>
 
-    <!-- Responsive Poster Grid (2 to 6 columns) -->
+    <!-- Responsive Poster Grid (1 to 3 columns) -->
     <div
       v-else
-      class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8"
     >
       <MangaCard
         v-for="item in filteredManga"

@@ -30,7 +30,7 @@ function handleStep(e: MouseEvent, delta: number) {
 
 <template>
   <div
-    class="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-200 hover:border-ring/40 hover:shadow-md cursor-pointer select-none"
+    class="group relative flex flex-col overflow-hidden rounded-3xl border border-border/80 bg-card shadow-sm transition-all duration-300 hover:border-ring/50 hover:shadow-xl hover:-translate-y-1 cursor-pointer select-none"
     @click="emit('click', manga)"
   >
     <!-- Poster Container (2:3 Aspect Ratio) -->
@@ -39,39 +39,55 @@ function handleStep(e: MouseEvent, delta: number) {
         v-if="manga.coverUrl"
         :src="manga.coverUrl"
         :alt="manga.title"
-        class="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+        class="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         loading="lazy"
       />
       <div
         v-else
         class="flex size-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground bg-secondary/30"
       >
-        <BookOpen class="size-8 stroke-[1.5] text-muted-foreground/60" />
-        <span class="line-clamp-2 text-xs font-medium">{{ manga.title }}</span>
+        <BookOpen class="size-10 stroke-[1.5] text-muted-foreground/60" />
+        <span class="line-clamp-2 text-sm font-medium">{{ manga.title }}</span>
       </div>
 
       <!-- Top-right Chapter Badge -->
-      <div class="absolute right-2 top-2 z-10">
+      <div class="absolute right-3 top-3 z-10">
         <span
-          class="inline-flex items-center rounded-lg bg-background/85 px-2 py-0.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur-md border border-border/60"
+          class="inline-flex items-center rounded-xl bg-background/90 px-3 py-1 text-xs sm:text-sm font-bold text-foreground shadow-md backdrop-blur-md border border-border/60 tracking-tight"
         >
           {{ t.mangaChapter }} {{ manga.currentChapter }}
         </span>
       </div>
 
-      <!-- Quick Action Floating Overlay on hover (bottom of poster) -->
-      <div
-        class="absolute inset-x-0 bottom-0 flex items-center justify-between p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-6 opacity-90 sm:opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-      >
+      <!-- Subtle bottom gradient for poster edge -->
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent" />
+    </div>
+
+    <!-- Generous Footer & Metadata Area -->
+    <div class="flex flex-1 flex-col justify-between p-4 sm:p-5 gap-3.5 bg-card">
+      <div>
+        <h3
+          class="line-clamp-2 text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug tracking-tight"
+          :title="manga.title"
+        >
+          {{ manga.title }}
+        </h3>
+        <p v-if="manga.note" class="mt-1.5 line-clamp-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          {{ manga.note }}
+        </p>
+      </div>
+
+      <!-- Bottom Quick Actions Row with Comfortable Breathing Room -->
+      <div class="flex items-center justify-between gap-2 pt-3 border-t border-border/60">
         <!-- Read Link Button -->
         <Button
           size="sm"
           variant="secondary"
-          class="h-7 rounded-lg px-2 text-xs font-medium bg-background/90 text-foreground hover:bg-background shadow-xs"
+          class="h-9 px-3.5 rounded-xl text-xs sm:text-sm font-medium gap-1.5 shadow-xs hover:bg-secondary/80 transition-colors"
           :title="`${t.mangaReadNow} ${manga.currentChapter}`"
           @click="openChapter"
         >
-          <ExternalLink class="mr-1 size-3" />
+          <ExternalLink class="size-3.5" />
           {{ t.mangaRead }}
         </Button>
 
@@ -79,27 +95,14 @@ function handleStep(e: MouseEvent, delta: number) {
         <Button
           size="sm"
           variant="default"
-          class="h-7 rounded-lg px-2 text-xs font-medium shadow-xs"
+          class="h-9 px-3.5 rounded-xl text-xs sm:text-sm font-bold gap-1 shadow-xs hover:opacity-90 transition-opacity"
           :title="t.mangaQuickStep"
           @click="handleStep($event, 1)"
         >
-          <Plus class="mr-0.5 size-3" />
+          <Plus class="size-4" />
           1
         </Button>
       </div>
-    </div>
-
-    <!-- Title & Subtitle Below Poster -->
-    <div class="flex flex-col p-2.5">
-      <h3
-        class="line-clamp-2 text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug"
-        :title="manga.title"
-      >
-        {{ manga.title }}
-      </h3>
-      <p v-if="manga.note" class="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
-        {{ manga.note }}
-      </p>
     </div>
   </div>
 </template>

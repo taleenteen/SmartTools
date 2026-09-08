@@ -187,34 +187,34 @@ async function handleSave() {
 <template>
   <Dialog :open="open" @update:open="(val: boolean) => emit('update:open', val)">
     <DialogContent
-      class="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
+      class="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl"
       @paste="handlePaste"
     >
-      <DialogHeader class="px-6 pt-6 pb-2 shrink-0 border-b border-border/50">
-        <DialogTitle class="text-xl font-semibold tracking-tight">
+      <DialogHeader class="px-6 sm:px-8 pt-7 pb-4 shrink-0 border-b border-border/60 bg-muted/10">
+        <DialogTitle class="text-xl font-bold tracking-tight">
           {{ isEditing ? t.mangaEdit : t.mangaAdd }}
         </DialogTitle>
       </DialogHeader>
 
-      <form class="flex-1 overflow-y-auto px-6 py-4 space-y-4" @submit.prevent="handleSave">
+      <form class="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6" @submit.prevent="handleSave">
         <!-- Title -->
         <div>
-          <label class="block text-sm font-medium text-foreground">
+          <label class="block text-sm font-semibold text-foreground">
             {{ t.mangaTitle }} <span class="text-destructive">*</span>
           </label>
           <Input
             v-model="title"
-            class="mt-1"
-            placeholder="e.g. Revenge of the Iron-Blooded Sword Hound"
+            class="mt-2 h-11 text-sm rounded-xl"
+            placeholder="e.g. Solo Leveling หรือ Revenge of the Iron-Blooded Sword Hound"
             autocomplete="off"
           />
-          <p v-if="errors.title" class="mt-1 text-xs text-destructive">{{ errors.title }}</p>
+          <p v-if="errors.title" class="mt-1.5 text-xs text-destructive font-medium">{{ errors.title }}</p>
         </div>
 
         <!-- URL Pattern & Auto Detect -->
         <div>
           <div class="flex items-center justify-between">
-            <label class="block text-sm font-medium text-foreground">
+            <label class="block text-sm font-semibold text-foreground">
               {{ t.mangaUrlPattern }}
             </label>
             <Button
@@ -222,37 +222,37 @@ async function handleSave() {
               type="button"
               variant="ghost"
               size="sm"
-              class="h-7 text-xs text-primary hover:text-primary"
+              class="h-7 text-xs font-medium text-primary hover:text-primary rounded-lg"
               @click="runAutoDetect"
             >
-              <Sparkles class="mr-1 size-3" />
+              <Sparkles class="mr-1.5 size-3.5" />
               {{ t.mangaAutoDetect }}
             </Button>
           </div>
           <Input
             v-model="urlPattern"
-            class="mt-1 font-mono text-xs"
+            class="mt-2 h-10 font-mono text-xs rounded-xl"
             placeholder="https://www.go-manga.com/series-ตอนที่-{chapter}/"
             autocomplete="off"
             @blur="runAutoDetect"
           />
-          <p class="mt-1 text-xs text-muted-foreground">
+          <p class="mt-1.5 text-xs text-muted-foreground leading-relaxed">
             {{ t.mangaUrlPatternHint }}
           </p>
         </div>
 
         <!-- Current Chapter Stepper -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
-            <label class="block text-sm font-medium text-foreground">
+            <label class="block text-sm font-semibold text-foreground">
               {{ t.mangaCurrentChapter }}
             </label>
-            <div class="mt-1 flex items-center gap-1.5">
+            <div class="mt-2 flex items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                class="size-9 shrink-0"
+                class="size-11 shrink-0 rounded-xl"
                 :disabled="currentChapter <= 1"
                 @click="stepChapter(-1)"
               >
@@ -262,13 +262,13 @@ async function handleSave() {
                 v-model.number="currentChapter"
                 type="number"
                 min="1"
-                class="text-center font-semibold"
+                class="h-11 text-center font-bold text-base rounded-xl"
               />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                class="size-9 shrink-0"
+                class="size-11 shrink-0 rounded-xl"
                 @click="stepChapter(1)"
               >
                 <Plus class="size-4" />
@@ -278,37 +278,37 @@ async function handleSave() {
 
           <!-- Optional Override URL -->
           <div>
-            <label class="block text-sm font-medium text-foreground">
+            <label class="block text-sm font-semibold text-foreground">
               {{ t.mangaOverrideUrl }}
             </label>
             <Input
               v-model="latestUrl"
-              class="mt-1 font-mono text-xs"
-              placeholder="https://..."
+              class="mt-2 h-11 font-mono text-xs rounded-xl"
+              placeholder="https://... (ทางเลือก)"
               autocomplete="off"
             />
-            <p class="mt-1 text-[11px] text-muted-foreground">
+            <p class="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
               {{ t.mangaOverrideUrlHint }}
             </p>
           </div>
         </div>
 
         <!-- Resolved URL Preview -->
-        <div v-if="computedSampleUrl" class="rounded-lg bg-muted/50 p-2.5 text-xs">
-          <span class="text-muted-foreground">{{ t.mangaReadNow }} {{ currentChapter }}: </span>
-          <span class="font-mono text-foreground break-all">{{ computedSampleUrl }}</span>
+        <div v-if="computedSampleUrl" class="rounded-xl bg-muted/40 p-3.5 text-xs border border-border/60">
+          <span class="font-medium text-muted-foreground">{{ t.mangaReadNow }} {{ currentChapter }}: </span>
+          <span class="font-mono text-foreground break-all font-semibold">{{ computedSampleUrl }}</span>
         </div>
 
         <!-- Cover Image Section -->
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1.5">
+          <label class="block text-sm font-semibold text-foreground mb-2">
             {{ t.mangaCover }}
           </label>
 
-          <div class="flex flex-col sm:flex-row items-start gap-4">
+          <div class="flex flex-col sm:flex-row items-start gap-5">
             <!-- Cover Preview -->
             <div
-              class="relative flex size-28 sm:w-28 sm:h-40 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/40 shadow-xs"
+              class="relative flex w-28 h-40 sm:w-32 sm:h-44 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/40 shadow-xs"
             >
               <img
                 v-if="coverUrl"
@@ -316,14 +316,14 @@ async function handleSave() {
                 alt="Cover"
                 class="size-full object-cover"
               />
-              <div v-else class="flex flex-col items-center gap-1 p-2 text-center text-muted-foreground">
-                <ImagePlus class="size-6 stroke-[1.5]" />
-                <span class="text-[10px] leading-tight">2:3 Ratio</span>
+              <div v-else class="flex flex-col items-center gap-1.5 p-3 text-center text-muted-foreground">
+                <ImagePlus class="size-7 stroke-[1.5]" />
+                <span class="text-[11px] font-medium leading-tight">2:3 Poster</span>
               </div>
             </div>
 
             <!-- Upload / Paste Actions -->
-            <div class="flex-1 space-y-2 w-full">
+            <div class="flex-1 space-y-3 w-full">
               <input
                 ref="fileInputRef"
                 type="file"
@@ -332,15 +332,15 @@ async function handleSave() {
                 @change="onFileSelect"
               />
 
-              <div class="flex flex-wrap gap-2">
+              <div class="flex flex-wrap gap-2.5">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  class="rounded-full"
+                  class="h-9 px-3.5 rounded-xl text-xs font-medium gap-1.5"
                   @click="fileInputRef?.click()"
                 >
-                  <Upload class="mr-1.5 size-3.5" />
+                  <Upload class="size-3.5" />
                   {{ t.mangaCoverUpload }}
                 </Button>
 
@@ -349,10 +349,10 @@ async function handleSave() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  class="rounded-full"
+                  class="h-9 px-3.5 rounded-xl text-xs font-medium gap-1.5"
                   @click="rawImageSrc = coverUrl; cropOpen = true"
                 >
-                  <Crop class="mr-1.5 size-3.5" />
+                  <Crop class="size-3.5" />
                   {{ t.mangaCoverCrop }}
                 </Button>
 
@@ -361,7 +361,7 @@ async function handleSave() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  class="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  class="h-9 px-3 text-xs rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive"
                   @click="coverUrl = ''"
                 >
                   {{ t.delete }}
@@ -371,7 +371,7 @@ async function handleSave() {
               <!-- Direct URL or Paste hint -->
               <Input
                 v-model="coverUrl"
-                class="font-mono text-xs"
+                class="h-10 font-mono text-xs rounded-xl"
                 placeholder="Image URL or data:image/..."
               />
 
@@ -384,37 +384,37 @@ async function handleSave() {
 
         <!-- Note / Synopsis -->
         <div>
-          <label class="block text-sm font-medium text-foreground">
+          <label class="block text-sm font-semibold text-foreground">
             {{ t.mangaNote }}
           </label>
           <Textarea
             v-model="note"
-            class="mt-1 min-h-16 text-xs"
+            class="mt-2 min-h-24 p-3 text-xs sm:text-sm rounded-xl"
             placeholder="เรื่องย่อ หรือบันทึกเพิ่มเติม..."
           />
         </div>
       </form>
 
-      <div v-if="saveError" class="px-6 py-2.5 bg-destructive/10 border-t border-destructive/20 text-xs text-destructive flex items-center justify-between gap-2">
+      <div v-if="saveError" class="px-6 sm:px-8 py-3 bg-destructive/10 border-t border-destructive/20 text-xs sm:text-sm text-destructive flex items-center justify-between gap-3">
         <span>{{ saveError }}</span>
         <Button
           v-if="!session.loggedIn && mode.kind !== 'local'"
           as-child
           size="sm"
           variant="destructive"
-          class="h-7 px-2.5 text-xs rounded-full"
+          class="h-8 px-3 text-xs rounded-lg font-medium"
         >
           <RouterLink to="/settings">{{ t.login }}</RouterLink>
         </Button>
       </div>
 
-      <DialogFooter class="px-6 py-4 shrink-0 border-t border-border/50 flex items-center justify-end gap-2 bg-muted/10">
-        <Button variant="outline" type="button" :disabled="saving" @click="emit('update:open', false)">
+      <DialogFooter class="px-6 sm:px-8 py-4.5 shrink-0 border-t border-border/60 flex items-center justify-end gap-3 bg-muted/15">
+        <Button variant="outline" type="button" class="h-10 px-5 text-sm font-medium rounded-xl" :disabled="saving" @click="emit('update:open', false)">
           {{ t.cancel }}
         </Button>
-        <Button type="button" :disabled="saving" @click="handleSave">
-          <span v-if="saving" class="flex items-center gap-1.5">
-            <span class="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <Button type="button" class="h-10 px-6 text-sm font-semibold rounded-xl shadow-xs" :disabled="saving" @click="handleSave">
+          <span v-if="saving" class="flex items-center gap-2">
+            <span class="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             {{ t.mangaSaving }}
           </span>
           <span v-else>{{ t.save }}</span>

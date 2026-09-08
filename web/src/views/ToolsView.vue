@@ -62,14 +62,14 @@ function openTool(href: string, external?: boolean) {
         <h1 class="text-2xl font-semibold tracking-tight">{{ t.toolsTitle }}</h1>
         <p class="mt-1 text-sm text-muted-foreground">{{ t.toolsSubtitle }}</p>
       </div>
-      <div class="flex items-center gap-2">
-        <Button as-child size="sm" variant="outline" class="rounded-full">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <RouterLink to="/">{{ t.toolsFav }}</RouterLink>
         </Button>
-        <Button as-child size="sm" variant="outline" class="rounded-full">
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <RouterLink to="/manga">{{ t.manga }}</RouterLink>
         </Button>
-        <Button as-child size="sm" variant="outline" class="rounded-full">
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <a href="/about.html">{{ t.toolsAbout }}</a>
         </Button>
         <ThemeSwitcher />

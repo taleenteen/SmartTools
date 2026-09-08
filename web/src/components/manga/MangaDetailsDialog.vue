@@ -121,16 +121,16 @@ function confirmDelete() {
 
 <template>
   <Dialog :open="open" @update:open="(val: boolean) => emit('update:open', val)">
-    <DialogContent class="sm:max-w-md md:max-w-lg p-0 overflow-hidden">
+    <DialogContent class="sm:max-w-lg md:max-w-xl p-0 overflow-hidden rounded-2xl">
       <DialogHeader class="sr-only">
         <DialogTitle>{{ manga?.title || t.mangaDetails }}</DialogTitle>
       </DialogHeader>
       <div v-if="manga" class="flex flex-col">
         <!-- Top Media Section -->
-        <div class="relative flex gap-4 p-6 bg-muted/20 border-b border-border">
+        <div class="relative flex flex-col sm:flex-row gap-5 sm:gap-6 p-6 sm:p-7 bg-muted/20 border-b border-border">
           <!-- Cover Thumbnail -->
           <div
-            class="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-xl border border-border bg-muted shadow-sm"
+            class="relative aspect-[2/3] w-28 sm:w-36 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted shadow-md"
           >
             <img
               v-if="manga.coverUrl"
@@ -139,7 +139,7 @@ function confirmDelete() {
               class="size-full object-cover"
             />
             <div v-else class="flex size-full items-center justify-center bg-secondary/40 text-muted-foreground">
-              <BookOpen class="size-6" />
+              <BookOpen class="size-8" />
             </div>
           </div>
 
@@ -148,59 +148,57 @@ function confirmDelete() {
             <div>
               <div class="flex items-start justify-between gap-2">
                 <span
-                  class="inline-flex items-center rounded-md bg-primary-wash px-2 py-0.5 text-xs font-semibold text-primary"
+                  class="inline-flex items-center rounded-xl bg-primary-wash px-3 py-1 text-xs sm:text-sm font-bold text-primary tracking-tight"
                 >
                   {{ t.mangaChapter }} {{ manga.currentChapter }}
                 </span>
 
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1.5">
                   <Button
                     size="icon"
                     variant="ghost"
-                    class="size-7 text-muted-foreground hover:text-foreground"
+                    class="size-8 rounded-lg text-muted-foreground hover:text-foreground"
                     :title="t.edit"
                     @click="emit('edit', manga); emit('update:open', false)"
                   >
-                    <Pencil class="size-3.5" />
+                    <Pencil class="size-4" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    class="size-7 text-muted-foreground hover:text-destructive"
+                    class="size-8 rounded-lg text-muted-foreground hover:text-destructive"
                     :title="t.delete"
                     @click="confirmDeleteOpen = true"
                   >
-                    <Trash2 class="size-3.5" />
+                    <Trash2 class="size-4" />
                   </Button>
                 </div>
               </div>
 
-              <h2 class="mt-1.5 text-base sm:text-lg font-semibold tracking-tight text-foreground line-clamp-2">
+              <h2 class="mt-2 text-lg sm:text-xl font-bold tracking-tight text-foreground line-clamp-2 leading-snug">
                 {{ manga.title }}
               </h2>
 
-              <p v-if="manga.note" class="mt-1 text-xs text-muted-foreground line-clamp-2">
+              <p v-if="manga.note" class="mt-1.5 text-xs sm:text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                 {{ manga.note }}
               </p>
             </div>
 
             <!-- Read Current Chapter Button -->
-            <div class="mt-3 flex flex-wrap gap-2">
+            <div class="mt-4 flex flex-wrap gap-2.5">
               <Button
-                size="sm"
-                class="rounded-full shadow-xs"
+                class="h-10 px-4 rounded-xl text-xs sm:text-sm font-medium shadow-xs gap-2"
                 :disabled="!currentUrl"
                 @click="openCurrentLink"
               >
-                <ExternalLink class="mr-1.5 size-3.5" />
+                <ExternalLink class="size-4" />
                 {{ t.mangaReadNow }} {{ manga.currentChapter }}
               </Button>
 
               <Button
                 v-if="nextChapterUrl"
-                size="sm"
                 variant="outline"
-                class="rounded-full"
+                class="h-10 px-4 rounded-xl text-xs sm:text-sm font-medium gap-2"
                 @click="openNextLink"
               >
                 {{ t.mangaNextChapter }} ({{ manga.currentChapter + 1 }})
@@ -210,46 +208,46 @@ function confirmDelete() {
         </div>
 
         <!-- Chapter Progress Stepper & Update -->
-        <div class="p-6 space-y-4">
+        <div class="p-6 sm:p-7 space-y-6">
           <div>
-            <label class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            <label class="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               {{ t.mangaCurrentChapter }}
             </label>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2.5">
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                class="size-10 shrink-0 rounded-xl"
+                class="size-12 shrink-0 rounded-xl"
                 :disabled="draftChapter <= 1"
                 @click="stepDraft(-1)"
               >
-                <Minus class="size-4" />
+                <Minus class="size-4.5" />
               </Button>
 
               <Input
                 v-model.number="draftChapter"
                 type="number"
                 min="1"
-                class="h-10 text-center font-bold text-base rounded-xl"
+                class="h-12 text-center font-bold text-lg rounded-xl"
               />
 
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                class="size-10 shrink-0 rounded-xl"
+                class="size-12 shrink-0 rounded-xl"
                 @click="stepDraft(1)"
               >
-                <Plus class="size-4" />
+                <Plus class="size-4.5" />
               </Button>
             </div>
           </div>
 
           <!-- URL Preview -->
-          <div class="rounded-xl border border-border bg-muted/30 p-3 text-xs">
-            <p class="font-medium text-muted-foreground">{{ t.mangaUrlPattern }}:</p>
-            <p class="mt-0.5 font-mono text-foreground break-all text-[11px]">
+          <div class="rounded-xl border border-border/70 bg-muted/30 p-3.5 text-xs">
+            <p class="font-semibold text-muted-foreground">{{ t.mangaUrlPattern }}:</p>
+            <p class="mt-1 font-mono text-foreground break-all text-xs leading-relaxed">
               {{ previewUrlForDraft || t.folderDisconnected }}
             </p>
           </div>
@@ -258,16 +256,16 @@ function confirmDelete() {
           <div>
             <button
               type="button"
-              class="text-xs text-primary underline-offset-4 hover:underline"
+              class="text-xs sm:text-sm font-medium text-primary underline-offset-4 hover:underline"
               @click="showOverride = !showOverride"
             >
               {{ showOverride ? 'ซ่อนการระบุ URL เฉพาะตอน' : t.mangaOverrideUrl }}
             </button>
 
-            <div v-if="showOverride" class="mt-2 space-y-1">
+            <div v-if="showOverride" class="mt-2.5 space-y-1.5">
               <Input
                 v-model="draftOverrideUrl"
-                class="font-mono text-xs"
+                class="h-10 font-mono text-xs rounded-xl"
                 placeholder="https://... (URL สำหรับตอนนี้เท่านั้น)"
               />
               <p class="text-[11px] text-muted-foreground">
@@ -278,18 +276,19 @@ function confirmDelete() {
         </div>
 
         <!-- Footer Actions -->
-        <DialogFooter class="p-4 shrink-0 border-t border-border flex flex-wrap items-center justify-between gap-2 bg-muted/10">
+        <DialogFooter class="p-5 sm:p-6 shrink-0 border-t border-border flex flex-wrap items-center justify-between gap-3 bg-muted/15">
           <div class="text-xs text-muted-foreground">
-            <span v-if="!session.loggedIn && mode.kind !== 'local'" class="text-amber-600 dark:text-amber-400 font-medium">
+            <span v-if="!session.loggedIn && mode.kind !== 'local'" class="text-amber-600 dark:text-amber-400 font-semibold">
               {{ t.mangaNeedLogin }}
             </span>
           </div>
-          <div class="flex items-center gap-2">
-            <Button variant="outline" type="button" @click="emit('update:open', false)">
+          <div class="flex items-center gap-2.5">
+            <Button variant="outline" type="button" class="h-10 px-5 text-sm font-medium rounded-xl" @click="emit('update:open', false)">
               {{ t.cancel }}
             </Button>
             <Button
               type="button"
+              class="h-10 px-6 text-sm font-semibold rounded-xl shadow-xs"
               :disabled="!isDirty || (!session.loggedIn && mode.kind !== 'local')"
               @click="handleSaveProgress"
             >

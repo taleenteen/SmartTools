@@ -201,9 +201,9 @@ onMounted(() => {
 
 <template>
   <Dialog :open="open" @update:open="(val: boolean) => emit('update:open', val)">
-    <DialogContent class="sm:max-w-md p-6">
+    <DialogContent class="sm:max-w-md p-6 sm:p-7 rounded-2xl">
       <DialogHeader>
-        <DialogTitle class="text-lg font-semibold tracking-tight">
+        <DialogTitle class="text-lg sm:text-xl font-bold tracking-tight">
           {{ t.mangaCropTitle }}
         </DialogTitle>
       </DialogHeader>
@@ -235,7 +235,7 @@ onMounted(() => {
           <Button
             size="icon"
             variant="ghost"
-            class="size-8 text-muted-foreground hover:text-foreground"
+            class="size-9 rounded-lg text-muted-foreground hover:text-foreground"
             type="button"
             :title="t.showLess"
             @click="setZoom(zoom - 0.1)"
@@ -256,7 +256,7 @@ onMounted(() => {
           <Button
             size="icon"
             variant="ghost"
-            class="size-8 text-muted-foreground hover:text-foreground"
+            class="size-9 rounded-lg text-muted-foreground hover:text-foreground"
             type="button"
             :title="t.showMore"
             @click="setZoom(zoom + 0.1)"
@@ -267,7 +267,7 @@ onMounted(() => {
           <Button
             size="icon"
             variant="ghost"
-            class="size-8 text-muted-foreground hover:text-foreground"
+            class="size-9 rounded-lg text-muted-foreground hover:text-foreground"
             type="button"
             :title="t.retry"
             @click="resetCrop"
@@ -277,11 +277,11 @@ onMounted(() => {
         </div>
       </div>
 
-      <DialogFooter class="flex items-center justify-end gap-2 pt-2">
-        <Button variant="outline" type="button" @click="emit('update:open', false)">
+      <DialogFooter class="flex items-center justify-end gap-2.5 pt-3 border-t border-border/50">
+        <Button variant="outline" type="button" class="h-10 px-5 text-sm font-medium rounded-xl" @click="emit('update:open', false)">
           {{ t.cancel }}
         </Button>
-        <Button type="button" @click="handleConfirm">
+        <Button type="button" class="h-10 px-6 text-sm font-semibold rounded-xl shadow-xs" @click="handleConfirm">
           {{ t.mangaCropConfirm }}
         </Button>
       </DialogFooter>
