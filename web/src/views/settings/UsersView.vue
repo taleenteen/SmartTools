@@ -246,7 +246,7 @@ async function runMigrate(dryRun: boolean) {
       <p class="mb-3 text-sm text-muted-foreground">{{ t.usersHint }}</p>
       <p v-if="users.status === 'loading'" class="text-sm text-muted-foreground">{{ t.checkingSession }}</p>
       <p v-else-if="!users.items.length" class="text-sm text-muted-foreground">{{ t.usersEmpty }}</p>
-      <ul v-else class="space-y-2.5">
+      <ul v-else class="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
         <li
           v-for="row in users.items"
           :key="row.username"

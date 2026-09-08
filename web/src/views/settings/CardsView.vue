@@ -163,7 +163,7 @@ function confirmMove() {
       {{ t.emptySection }}
     </p>
 
-    <ul v-else class="space-y-2">
+    <ul v-else class="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
       <li
         v-for="(card, index) in editor.activeSection?.cards"
         :key="card.id || index"

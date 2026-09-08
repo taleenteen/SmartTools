@@ -212,7 +212,7 @@ async function copyUrl(kind: 'at' | 'user') {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
     <Card>
       <CardHeader>
         <CardTitle>{{ t.accountPasswordTitle }}</CardTitle>

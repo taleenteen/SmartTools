@@ -234,7 +234,7 @@ async function remove(msg: InboxMessage) {
       </div>
       <p v-if="inbox.status === 'loading'" class="text-sm text-muted-foreground">{{ t.checkingSession }}</p>
       <p v-else-if="!list.length" class="text-sm text-muted-foreground">{{ t.inboxEmpty }}</p>
-      <ul v-else class="space-y-2">
+      <ul v-else class="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
         <li
           v-for="msg in list"
           :key="msg.msgId"

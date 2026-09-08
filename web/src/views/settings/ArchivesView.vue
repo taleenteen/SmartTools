@@ -54,7 +54,7 @@ async function confirmDelete() {
     <p class="mb-3 text-sm text-muted-foreground">{{ t.archivesHint }}</p>
     <p v-if="users.archivesStatus === 'loading'" class="text-sm text-muted-foreground">{{ t.checkingSession }}</p>
     <p v-else-if="!users.archives.length" class="text-sm text-muted-foreground">{{ t.archivesEmpty }}</p>
-    <ul v-else class="space-y-2">
+    <ul v-else class="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
       <li
         v-for="row in users.archives"
         :key="row.archiveKey"

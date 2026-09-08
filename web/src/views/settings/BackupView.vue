@@ -76,7 +76,7 @@ async function confirm() {
   <div>
     <p v-if="backups.status === 'loading'" class="text-sm text-muted-foreground">{{ t.checkingSession }}</p>
     <p v-else-if="!backups.items.length" class="text-sm text-muted-foreground">{{ t.backupEmpty }}</p>
-    <ul v-else class="space-y-2.5">
+    <ul v-else class="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
       <li
         v-for="item in backups.items"
         :key="item.name"

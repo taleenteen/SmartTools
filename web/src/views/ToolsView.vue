@@ -55,7 +55,7 @@ function openTool(href: string, external?: boolean) {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-2xl lg:max-w-4xl lg:px-6">
+  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
     <header class="mb-8 flex items-start justify-between gap-3">
       <div>
         <p class="text-sm text-muted-foreground">{{ t.appName }}</p>
@@ -73,11 +73,11 @@ function openTool(href: string, external?: boolean) {
       </div>
     </header>
 
-    <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <li v-for="tool in tools" :key="tool.href">
         <button
           type="button"
-          class="flex h-full w-full items-start gap-3 rounded-xl border border-border bg-card p-4 text-left shadow-xs transition-colors hover:border-ring/40 hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-ring"
+          class="flex h-full w-full items-start gap-3 rounded-xl border border-border bg-card p-4 text-left shadow-xs transition-colors hover:border-ring/40 hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           @click="openTool(tool.href)"
         >
           <span class="text-2xl">{{ tool.icon }}</span>
@@ -87,15 +87,15 @@ function openTool(href: string, external?: boolean) {
           </span>
         </button>
       </li>
-      <li v-for="group in groups" :key="group.title" class="rounded-xl border border-border bg-card p-4 shadow-xs sm:col-span-2">
+      <li v-for="group in groups" :key="group.title" class="rounded-xl border border-border bg-card p-4 shadow-xs sm:col-span-2 lg:col-span-3">
         <p class="font-medium text-foreground">{{ group.icon }} {{ group.title }}</p>
         <p class="mb-3 text-xs text-muted-foreground">{{ group.desc }}</p>
-        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <button
             v-for="item in group.items"
             :key="item.href"
             type="button"
-            class="flex items-center justify-between rounded-lg bg-muted/70 px-3 py-2.5 text-left text-sm transition-colors hover:bg-card-hover hover:text-foreground"
+            class="flex items-center justify-between rounded-lg bg-muted/70 px-3 py-2.5 text-left text-sm transition-colors hover:bg-card-hover hover:text-foreground cursor-pointer"
             @click="openTool(item.href, item.external)"
           >
             <div class="min-w-0 flex-1 truncate">

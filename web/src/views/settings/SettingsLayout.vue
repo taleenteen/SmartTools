@@ -82,7 +82,7 @@ async function connectLocal() {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 pb-16 pt-10">
+  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
     <header class="mb-8 flex flex-wrap items-center justify-between gap-3">
       <div>
         <p class="text-sm text-muted-foreground">{{ t.appName }}</p>
