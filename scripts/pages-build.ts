@@ -56,7 +56,7 @@ await run(
     '--build-output-directory',
     dist,
     '--compatibility-date',
-    '2026-09-08',
+    '2026-09-07',
   ],
   join(root, 'web'),
 )

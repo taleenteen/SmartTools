@@ -2,7 +2,7 @@
 # CI runs `npx wrangler deploy` — do not use `wrangler pages deploy`.
 name = "smart-tools"
 main = "./worker-build/index.js"
-compatibility_date = "2026-09-08"
+compatibility_date = "2026-09-07"
 
 [assets]
 directory = "./dist"

@@ -39,10 +39,10 @@ Cloudflare **ห้าม** ตั้ง `compatibility_date` เป็นวั
 
 | ไฟล์ | บรรทัด |
 |---|---|
-| `wrangler.toml` | `compatibility_date = "2026-09-08"` |
-| `scripts/pages-build.ts` | `--compatibility-date`, `'2026-09-08'` |
+| `wrangler.toml` | `compatibility_date = "2026-09-07"` |
+| `scripts/pages-build.ts` | `--compatibility-date`, `'2026-09-07'` |
 
-แพตช์ที่ยัง**ไม่ได้ทำ**: เปลี่ยนทั้งสองที่ให้เป็นวันที่ UTC ที่ผ่านมาแล้ว เช่น `2026-09-07` หรือวันที่เก่ากว่านั้นที่ยังครอบคลุม flag ที่ต้องการ (เอกสาร SPA กล่าวถึง `2025-04-01` สำหรับ `assets_navigation_prefers_asset_serving`)
+**แพตช์ที่ทำแล้ว:** ปรับทั้งสองที่ให้เป็นวันที่ UTC ในอดีต (`2026-09-07`) เพื่อแก้ Error 10021 เรียบร้อยแล้ว
 
 อย่าตั้งเป็น “วันนี้ตามเวลาไทย” อีก
 
@@ -93,7 +93,7 @@ Cloudflare **ห้าม** ตั้ง `compatibility_date` เป็นวั
 ```toml
 name = "smart-tools"
 main = "./worker-build/index.js"
-compatibility_date = "2026-09-08"   # ← จุดที่ API 10021 ปฏิเสธ
+compatibility_date = "2026-09-07"
 
 [assets]
 directory = "./dist"
