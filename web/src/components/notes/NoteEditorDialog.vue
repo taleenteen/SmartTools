@@ -279,9 +279,12 @@ onBeforeUnmount(() => {
 <template>
   <Dialog :open="open" @update:open="(val) => emit('update:open', val)">
     <DialogContent
+      :show-close-button="false"
       :class="[
         'p-0 gap-0 overflow-hidden flex flex-col transition-all duration-200 border border-border shadow-2xl bg-card',
-        isZenMode ? 'fixed inset-0 w-screen h-screen max-w-none rounded-none' : 'w-[96vw] max-w-5xl h-[92vh] rounded-2xl'
+        isZenMode
+          ? 'fixed inset-0 w-screen h-screen max-w-none rounded-none'
+          : 'w-[90vw] max-w-[90vw] sm:w-[80vw] sm:max-w-[80vw] md:w-[80vw] md:max-w-[80vw] lg:w-[80vw] lg:max-w-[80vw] xl:w-[80vw] xl:max-w-[80vw] h-[90vh] max-h-[90vh] rounded-2xl'
       ]"
       @keydown="handleKeyDown"
     >
@@ -675,7 +678,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 4. NOTE TITLE & COVER BANNER -->
-      <div class="px-8 pt-6 pb-2 shrink-0 space-y-4">
+      <div class="px-6 sm:px-10 lg:px-14 pt-6 pb-2 shrink-0 space-y-4">
         <!-- Optional Cover Input & Banner -->
         <div v-if="showCoverInput" class="space-y-2">
           <Input
@@ -700,13 +703,13 @@ onBeforeUnmount(() => {
         <input
           v-model="title"
           :placeholder="t.notesTitlePlaceholder"
-          class="w-full text-2xl sm:text-3xl font-extrabold bg-transparent text-foreground placeholder:text-muted-foreground/50 border-none outline-none focus:ring-0 px-0"
+          class="w-full text-2xl sm:text-3xl lg:text-4xl font-extrabold bg-transparent text-foreground placeholder:text-muted-foreground/50 border-none outline-none focus:ring-0 px-0"
           @input="triggerAutoSave"
         />
       </div>
 
       <!-- 5. EDITOR CONTENT AREA (Tiptap Prose) -->
-      <div class="flex-1 overflow-y-auto px-8 py-4 focus:outline-none">
+      <div class="flex-1 overflow-y-auto px-6 sm:px-10 lg:px-14 py-4 focus:outline-none">
         <EditorContent
           :editor="editor"
           :class="['tiptap-editor max-w-none text-foreground outline-none', selectedFont, selectedSize]"
@@ -714,7 +717,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 6. LIVE STATUS BAR (Apple Notes Pain Point Fix!) -->
-      <footer class="px-6 py-2.5 border-t border-border/70 flex items-center justify-between text-xs text-muted-foreground bg-card shrink-0">
+      <footer class="px-6 sm:px-10 lg:px-14 py-2.5 border-t border-border/70 flex items-center justify-between text-xs text-muted-foreground bg-card shrink-0">
         <div class="flex items-center gap-4">
           <span>{{ wordsCount }} {{ t.notesWords }}</span>
           <span>•</span>
