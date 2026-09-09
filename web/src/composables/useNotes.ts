@@ -428,6 +428,8 @@ export function useNotes() {
     // Active project filter
     if (activeProjectId.value === 'standalone') {
       list = list.filter(n => !n.projectId)
+    } else if (activeProjectId.value === 'in_folder') {
+      list = list.filter(n => Boolean(n.projectId))
     } else if (activeProjectId.value === 'pinned') {
       list = list.filter(n => n.pinned)
     } else if (activeProjectId.value) {
@@ -449,7 +451,12 @@ export function useNotes() {
   })
 
   const currentProject = computed(() => {
-    if (!activeProjectId.value || activeProjectId.value === 'standalone' || activeProjectId.value === 'pinned') {
+    if (
+      !activeProjectId.value ||
+      activeProjectId.value === 'standalone' ||
+      activeProjectId.value === 'in_folder' ||
+      activeProjectId.value === 'pinned'
+    ) {
       return null
     }
     return projects.value.find(p => p.id === activeProjectId.value) || null

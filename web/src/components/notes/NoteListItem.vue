@@ -46,7 +46,7 @@ const formattedDate = computed(() => {
 
 <template>
   <div
-    class="group flex items-center justify-between px-4 py-3 rounded-xl border border-transparent hover:border-border/80 hover:bg-muted/40 transition-colors cursor-pointer text-sm"
+    class="group flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer text-sm rounded-none"
     @click="emit('open', note)"
   >
     <!-- Column 1: Icon + Title + Pinned -->

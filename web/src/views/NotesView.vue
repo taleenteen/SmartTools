@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   FolderKanban,
+  Check,
+  Pin,
 } from 'lucide-vue-next'
 
 import AppNavbar from '@/components/bookmarks/AppNavbar.vue'
@@ -103,6 +105,27 @@ const visibleProjects = computed(() => {
   return projects.value.filter(
     (p) => p.title.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q))
   )
+})
+
+const activeFilterInfo = computed(() => {
+  if (activeProjectId.value === 'standalone') {
+    return { id: 'standalone', title: t.notesOutsideFolder, icon: Folder }
+  }
+  if (activeProjectId.value === 'in_folder') {
+    return { id: 'in_folder', title: t.notesInsideFolder, icon: FolderKanban }
+  }
+  if (activeProjectId.value === 'pinned') {
+    return { id: 'pinned', title: t.notesPinned, icon: Pin }
+  }
+  if (currentProject.value) {
+    return { id: currentProject.value.id, title: currentProject.value.title, icon: FolderKanban }
+  }
+  return { id: 'all', title: t.notesAll, icon: FileText }
+})
+
+const activeFilterLabel = computed(() => {
+  if (!activeProjectId.value) return t.notesLocationCol
+  return activeFilterInfo.value.title
 })
 
 onMounted(async () => {
@@ -250,9 +273,8 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground flex flex-col">
-    <div class="flex-1 w-full max-w-md sm:max-w-3xl lg:max-w-6xl mx-auto px-4 py-4 flex flex-col">
-      <AppNavbar />
+  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-2 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
+    <AppNavbar />
 
       <!-- Page Title & Stats -->
       <div class="mb-6 flex items-center justify-between">
@@ -319,23 +341,81 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
             </Button>
           </div>
 
-          <!-- Filter categories (if at root) -->
-          <DropdownMenu v-if="!activeProjectId">
+          <!-- Filter categories (always accessible) -->
+          <DropdownMenu>
             <DropdownMenuTrigger as-child>
-              <Button variant="outline" class="h-12 px-4 rounded-full text-sm font-medium gap-2 bg-card border-border/80">
-                <Folder class="size-4 text-primary" />
-                <span class="hidden sm:inline">{{ t.notesLocationCol }}</span>
+              <Button
+                variant="outline"
+                :class="[
+                  'h-12 px-4 sm:px-5 rounded-full text-sm font-medium gap-2 shadow-xs transition-colors',
+                  activeProjectId ? 'border-primary/50 bg-primary/10 text-primary font-semibold' : 'bg-card border-border/80 text-foreground'
+                ]"
+              >
+                <component :is="activeFilterInfo.icon" class="size-4.5 shrink-0 text-primary" />
+                <span class="hidden sm:inline">{{ activeFilterLabel }}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" class="w-48 rounded-xl shadow-lg">
-              <DropdownMenuItem class="cursor-pointer text-xs" @click="activeProjectId = null">
-                {{ t.notesAll }}
+            <DropdownMenuContent align="end" class="w-60 rounded-xl shadow-lg p-1.5">
+              <div class="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                ตัวกรองโน้ต
+              </div>
+              <DropdownMenuItem class="cursor-pointer gap-2.5 py-2.5 text-sm font-medium justify-between" @click="activeProjectId = null">
+                <div class="flex items-center gap-2.5">
+                  <FileText class="size-4 text-primary shrink-0" />
+                  <span>{{ t.notesAll }}</span>
+                </div>
+                <Check v-if="!activeProjectId" class="size-4 text-primary shrink-0" />
               </DropdownMenuItem>
-              <DropdownMenuItem class="cursor-pointer text-xs" @click="activeProjectId = 'pinned'">
-                {{ t.notesPinned }}
+              <DropdownMenuItem class="cursor-pointer gap-2.5 py-2.5 text-sm font-medium justify-between" @click="activeProjectId = 'standalone'">
+                <div class="flex items-center gap-2.5">
+                  <Folder class="size-4 text-primary shrink-0" />
+                  <span>{{ t.notesOutsideFolder }}</span>
+                </div>
+                <Check v-if="activeProjectId === 'standalone'" class="size-4 text-primary shrink-0" />
               </DropdownMenuItem>
-              <DropdownMenuItem class="cursor-pointer text-xs" @click="activeProjectId = 'standalone'">
-                {{ t.notesStandalone }}
+              <DropdownMenuItem class="cursor-pointer gap-2.5 py-2.5 text-sm font-medium justify-between" @click="activeProjectId = 'in_folder'">
+                <div class="flex items-center gap-2.5">
+                  <FolderKanban class="size-4 text-primary shrink-0" />
+                  <span>{{ t.notesInsideFolder }}</span>
+                </div>
+                <Check v-if="activeProjectId === 'in_folder'" class="size-4 text-primary shrink-0" />
+              </DropdownMenuItem>
+              <DropdownMenuItem class="cursor-pointer gap-2.5 py-2.5 text-sm font-medium justify-between" @click="activeProjectId = 'pinned'">
+                <div class="flex items-center gap-2.5">
+                  <Pin class="size-4 text-amber-500 shrink-0" />
+                  <span>{{ t.notesPinned }}</span>
+                </div>
+                <Check v-if="activeProjectId === 'pinned'" class="size-4 text-primary shrink-0" />
+              </DropdownMenuItem>
+
+              <template v-if="projects.length > 0">
+                <DropdownMenuSeparator />
+                <div class="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {{ t.notesProjects }} ({{ projects.length }})
+                </div>
+                <DropdownMenuItem
+                  v-for="proj in projects"
+                  :key="proj.id"
+                  class="cursor-pointer gap-2 py-2 text-sm font-medium justify-between"
+                  @click="activeProjectId = proj.id"
+                >
+                  <div class="flex items-center gap-2 truncate">
+                    <Folder class="size-4 text-primary shrink-0" />
+                    <span class="truncate">{{ proj.title }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
+                      {{ projectNoteCounts.get(proj.id) || 0 }}
+                    </span>
+                    <Check v-if="activeProjectId === proj.id" class="size-4 text-primary shrink-0" />
+                  </div>
+                </DropdownMenuItem>
+              </template>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem class="cursor-pointer gap-2.5 py-2.5 text-sm font-medium text-primary" @click="handleCreateProject">
+                <FolderPlus class="size-4 text-primary shrink-0" />
+                <span>{{ t.notesNewProject }}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -367,9 +447,9 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
       <div v-if="currentProject" class="mb-6 space-y-4">
         <!-- Breadcrumb back link -->
         <div class="flex items-center justify-between">
-          <Button variant="ghost" size="sm" class="h-9 px-3 rounded-full text-xs font-semibold gap-1.5" @click="handleBackToRoot">
-            <ArrowLeft class="size-3.5" />
-            <span>ย้อนกลับไป {{ t.notesAll }}</span>
+          <Button variant="ghost" size="sm" class="h-9 px-3 rounded-full text-xs sm:text-sm font-semibold gap-1.5" @click="handleBackToRoot">
+            <ArrowLeft class="size-4" />
+            <span>{{ t.notesBackToAll }}</span>
           </Button>
 
           <!-- Toggle folder mode presentation (Cover vs Minimal) -->
@@ -414,6 +494,30 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
         </div>
       </div>
 
+      <!-- Active Filter Banner (Standalone / In folder / Pinned) -->
+      <div
+        v-else-if="activeProjectId"
+        class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xs"
+      >
+        <div class="flex items-center gap-3">
+          <Button variant="ghost" size="sm" class="h-9 px-3 rounded-full text-xs sm:text-sm font-semibold gap-1.5" @click="handleBackToRoot">
+            <ArrowLeft class="size-4" />
+            <span>{{ t.notesBackToAll }}</span>
+          </Button>
+          <div class="h-4 w-px bg-border/80 hidden sm:block" />
+          <div class="flex items-center gap-2">
+            <component :is="activeFilterInfo.icon" class="size-4.5 text-primary shrink-0" />
+            <span class="font-bold text-base text-foreground">{{ activeFilterInfo.title }}</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+              {{ filteredNotes.length }}
+            </span>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" class="h-8 px-3 rounded-full text-xs font-medium" @click="handleBackToRoot">
+          {{ t.notesClearFilter }}
+        </Button>
+      </div>
+
       <!-- 4. ROOT PROJECTS SECTION (When at root view & has projects) -->
       <div v-if="!activeProjectId && visibleProjects.length > 0" class="mb-8 space-y-3">
         <div class="flex items-center justify-between">
@@ -448,7 +552,7 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
       </div>
 
       <!-- 5. NOTES CONTENT (Card View vs Google Drive List View) -->
-      <main class="flex-1 space-y-3">
+      <section class="flex-1 space-y-3">
         <div v-if="!activeProjectId" class="flex items-center justify-between mb-2">
           <h2 class="text-base font-bold text-foreground flex items-center gap-2">
             <FileText class="size-4 text-primary" />
@@ -531,7 +635,7 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
             @export="handleExportNote"
           />
         </div>
-      </main>
+      </section>
 
       <!-- 6. MODALS & DIALOGS -->
       <!-- Note Editor Dialog (Apple Notes Parity) -->
@@ -598,6 +702,5 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  </div>
+  </main>
 </template>

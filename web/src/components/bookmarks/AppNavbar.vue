@@ -41,12 +41,12 @@ const navItems = computed(() => [
 </script>
 
 <template>
-  <header class="sticky top-3 z-40 w-full max-w-md sm:max-w-3xl lg:max-w-6xl mx-auto px-4 mb-6 transition-all duration-200">
+  <header class="sticky top-3 z-40 w-full mb-6">
     <nav class="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-card/85 backdrop-blur-md border border-border/70 shadow-xs">
       <!-- 1. Logo & Brand -->
       <RouterLink
         to="/"
-        class="flex items-center gap-2 font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity shrink-0"
+        class="flex items-center gap-2 font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity shrink-0 min-w-[36px] sm:min-w-[140px]"
       >
         <div class="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
           <Sparkles class="size-4" />
@@ -63,9 +63,9 @@ const navItems = computed(() => [
           :key="item.id"
           :to="item.path"
           :class="[
-            'flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 shrink-0 select-none',
+            'flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 select-none',
             currentSection === item.id
-              ? 'bg-primary text-primary-foreground shadow-xs font-semibold scale-[1.02]'
+              ? 'bg-primary text-primary-foreground shadow-xs font-semibold'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
           ]"
         >
@@ -86,7 +86,7 @@ const navItems = computed(() => [
       </div>
 
       <!-- 3. Utilities (Theme Switcher & Quick Actions) -->
-      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div class="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 min-w-[36px] sm:min-w-[140px]">
         <ThemeSwitcher />
       </div>
     </nav>
