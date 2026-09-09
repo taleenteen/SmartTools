@@ -35,6 +35,9 @@ onMounted(async () => {
         <RouterLink to="/manga" :title="t.mangaSubtitle">{{ t.manga }}</RouterLink>
       </Button>
       <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
+        <RouterLink to="/notes" :title="t.notesSubtitle">{{ t.notes }}</RouterLink>
+      </Button>
+      <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
         <RouterLink to="/t" :title="t.toolsHint">{{ t.tools }}</RouterLink>
       </Button>
       <Button v-if="viewer.isAdminView || session.loggedIn" as-child class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">

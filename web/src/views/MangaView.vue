@@ -164,6 +164,9 @@ async function handleDelete(item: MangaItem) {
           <RouterLink to="/">{{ t.bookmarks }}</RouterLink>
         </Button>
         <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
+          <RouterLink to="/notes" :title="t.notesSubtitle">{{ t.notes }}</RouterLink>
+        </Button>
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <RouterLink to="/t">{{ t.tools }}</RouterLink>
         </Button>
         <Button

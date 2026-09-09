@@ -70,6 +70,9 @@ function openTool(href: string, external?: boolean) {
           <RouterLink to="/manga">{{ t.manga }}</RouterLink>
         </Button>
         <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
+          <RouterLink to="/notes" :title="t.notesSubtitle">{{ t.notes }}</RouterLink>
+        </Button>
+        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
           <a href="/about.html">{{ t.toolsAbout }}</a>
         </Button>
         <ThemeSwitcher />
