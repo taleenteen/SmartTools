@@ -105,15 +105,40 @@ export function useNotes() {
     }
   }
 
+  function cancelPendingSave() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
+    if (saveStatus.value === 'unsaved') {
+      saveStatus.value = 'idle'
+    }
+  }
+
   async function loadNote(id: string): Promise<NoteItemFull | null> {
-    // Check localStorage cache first
+    cancelPendingSave()
+
+    // 1. Check localStorage cache first
+    let cachedNote: NoteItemFull | null = null
     try {
       const cached = localStorage.getItem(`smarttools-note-${id}`)
       if (cached) {
-        currentNote.value = JSON.parse(cached)
+        cachedNote = JSON.parse(cached)
+        currentNote.value = cachedNote
       }
     } catch {
       /* ignore */
+    }
+
+    // 2. If not in cache, initialize currentNote with summary immediately so it never shows previous note
+    if (!cachedNote) {
+      const summary = notes.value.find(n => n.id === id)
+      if (summary) {
+        currentNote.value = {
+          ...summary,
+          content: ''
+        }
+      }
     }
 
     try {
@@ -121,7 +146,10 @@ export function useNotes() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       if (data.ok && data.note) {
-        currentNote.value = data.note
+        // Only update currentNote if the user is still on this note
+        if (currentNote.value?.id === id) {
+          currentNote.value = data.note
+        }
         try {
           localStorage.setItem(`smarttools-note-${id}`, JSON.stringify(data.note))
         } catch {
@@ -166,7 +194,11 @@ export function useNotes() {
       }
 
       const savedNote: NoteItemFull = data.note
-      currentNote.value = savedNote
+
+      // Only update currentNote if the user is still on this note
+      if (currentNote.value && (currentNote.value.id === savedNote.id || (!currentNote.value.id && !noteData.id))) {
+        currentNote.value = savedNote
+      }
 
       // Update in-memory summary list
       const idx = notes.value.findIndex(n => n.id === savedNote.id)
@@ -214,7 +246,12 @@ export function useNotes() {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
+    const targetId = noteData.id
     debounceTimer = setTimeout(() => {
+      // If user switched to another note while waiting, abandon saving the old note
+      if (targetId && currentNote.value?.id && currentNote.value.id !== targetId) {
+        return
+      }
       void saveNote(noteData).catch(() => {
         /* error handled in saveNote */
       })
@@ -222,6 +259,7 @@ export function useNotes() {
   }
 
   async function deleteNote(id: string): Promise<boolean> {
+    cancelPendingSave()
     try {
       const res = await fetch(`/api/notes?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
@@ -442,6 +480,7 @@ export function useNotes() {
     saveProject,
     deleteProject,
     reorderNotes,
-    exportNote
+    exportNote,
+    cancelPendingSave
   }
 }

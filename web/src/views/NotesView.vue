@@ -71,6 +71,7 @@ const {
   deleteProject,
   reorderNotes,
   exportNote,
+  cancelPendingSave,
 } = useNotes()
 
 // Modal states
@@ -115,6 +116,7 @@ function handleCreateNote() {
     showLoginAlert.value = true
     return
   }
+  cancelPendingSave()
   currentNote.value = {
     id: '',
     title: '',
@@ -131,15 +133,36 @@ function handleCreateNote() {
   noteEditorOpen.value = true
 }
 
-async function handleOpenNote(summary: NoteItemSummary) {
+function handleOpenNote(summary: NoteItemSummary) {
+  cancelPendingSave()
+
+  // 1. Check local cache or initialize currentNote immediately with summary
+  // This guarantees 0ms UI lag - modal opens INSTANTLY!
+  let cachedContent = ''
   try {
-    const full = await loadNote(summary.id)
-    if (full) {
-      noteEditorOpen.value = true
+    const cached = localStorage.getItem(`smarttools-note-${summary.id}`)
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      if (parsed && typeof parsed.content === 'string') {
+        cachedContent = parsed.content
+      }
     }
-  } catch (err) {
-    console.error('Error opening note', err)
+  } catch {
+    /* ignore */
   }
+
+  currentNote.value = {
+    ...summary,
+    content: cachedContent,
+  }
+
+  // 2. Open editor modal immediately
+  noteEditorOpen.value = true
+
+  // 3. Fetch latest full content from KV in the background
+  void loadNote(summary.id).catch((err) => {
+    console.error('Error opening note', err)
+  })
 }
 
 function handleCreateProject() {
@@ -537,9 +560,10 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
         :saving="saving"
         :save-status="saveStatus"
         :last-saved-at="lastSavedAt"
-        @update:open="(val) => noteEditorOpen = val"
+        @update:open="(val) => { noteEditorOpen = val; if (!val) cancelPendingSave(); }"
         @save="saveNote"
         @auto-save="queueDebouncedSave"
+        @cancel-save="cancelPendingSave"
         @export="exportNote"
       />
 

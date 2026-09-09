@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import TaskList from '@tiptap/extension-task-list'
@@ -72,6 +72,7 @@ const emit = defineEmits<{
   (e: 'save', note: Partial<NoteItemFull>): void
   (e: 'auto-save', note: Partial<NoteItemFull>): void
   (e: 'export', note: NoteItemFull, format: 'md' | 'html' | 'txt'): void
+  (e: 'cancel-save'): void
 }>()
 
 // Note metadata fields
@@ -80,6 +81,10 @@ const projectId = ref<string | null>(null)
 const coverUrl = ref('')
 const showCoverInput = ref(false)
 const isZenMode = ref(false)
+
+// Tracking & anti-race condition flags
+const activeNoteId = ref<string | null>(null)
+const isProgrammaticUpdate = ref(false)
 
 // Typography customizer
 const selectedFont = ref('font-sans')
@@ -128,7 +133,8 @@ const editor = useEditor({
     CharacterCount,
   ],
   content: '',
-  onUpdate: () => {
+  onUpdate: ({ transaction }) => {
+    if (isProgrammaticUpdate.value || !transaction.docChanged) return
     triggerAutoSave()
   },
 })
@@ -136,34 +142,71 @@ const editor = useEditor({
 // Synchronize prop note with local state
 watch(
   () => props.note,
-  (newNote) => {
+  async (newNote) => {
     if (newNote) {
-      title.value = newNote.title || ''
-      projectId.value = newNote.projectId || null
-      coverUrl.value = newNote.coverUrl || ''
-      showCoverInput.value = Boolean(newNote.coverUrl)
-      if (editor.value && editor.value.getHTML() !== newNote.content) {
-        editor.value.commands.setContent(newNote.content || '')
+      const isSwitchingNote = activeNoteId.value !== newNote.id
+      activeNoteId.value = newNote.id || null
+      isProgrammaticUpdate.value = true
+
+      if (isSwitchingNote) {
+        title.value = newNote.title || ''
+        projectId.value = newNote.projectId || null
+        coverUrl.value = newNote.coverUrl || ''
+        showCoverInput.value = Boolean(newNote.coverUrl)
+        if (editor.value) {
+          editor.value.commands.setContent(newNote.content || '', { emitUpdate: false })
+        }
+      } else {
+        // Same note (e.g. background fetch updated or ID assigned)
+        if (editor.value && editor.value.getHTML() !== (newNote.content || '') && !editor.value.isFocused) {
+          editor.value.commands.setContent(newNote.content || '', { emitUpdate: false })
+        }
+        if (newNote.coverUrl && !coverUrl.value) {
+          coverUrl.value = newNote.coverUrl
+          showCoverInput.value = true
+        }
       }
+
+      await nextTick()
+      setTimeout(() => {
+        isProgrammaticUpdate.value = false
+      }, 50)
     } else {
+      activeNoteId.value = null
+      isProgrammaticUpdate.value = true
       title.value = ''
       projectId.value = null
       coverUrl.value = ''
       showCoverInput.value = false
-      if (editor.value) editor.value.commands.setContent('')
+      if (editor.value) {
+        editor.value.commands.setContent('', { emitUpdate: false })
+      }
+      await nextTick()
+      setTimeout(() => {
+        isProgrammaticUpdate.value = false
+      }, 50)
     }
   },
   { immediate: true }
 )
 
-// Re-sync when modal opens
+// Re-sync when modal opens or closes
 watch(
   () => props.open,
-  (isOpen) => {
-    if (isOpen && props.note && editor.value) {
-      if (editor.value.getHTML() !== props.note.content) {
-        editor.value.commands.setContent(props.note.content || '')
+  async (isOpen) => {
+    if (isOpen) {
+      if (props.note && editor.value) {
+        isProgrammaticUpdate.value = true
+        if (editor.value.getHTML() !== (props.note.content || '')) {
+          editor.value.commands.setContent(props.note.content || '', { emitUpdate: false })
+        }
+        await nextTick()
+        setTimeout(() => {
+          isProgrammaticUpdate.value = false
+        }, 50)
       }
+    } else {
+      emit('cancel-save')
     }
   }
 )
@@ -174,7 +217,7 @@ function getNotePayload(): Partial<NoteItemFull> {
   const chars = editor.value ? editor.value.storage.characterCount.characters() : 0
 
   return {
-    id: props.note?.id,
+    id: activeNoteId.value || props.note?.id || undefined,
     title: title.value.trim() || 'Untitled Note',
     content: html,
     projectId: projectId.value,
@@ -187,6 +230,7 @@ function getNotePayload(): Partial<NoteItemFull> {
 }
 
 function triggerAutoSave() {
+  if (!props.open || isProgrammaticUpdate.value) return
   emit('auto-save', getNotePayload())
 }
 
@@ -272,6 +316,7 @@ function handleInsertImage() {
 }
 
 onBeforeUnmount(() => {
+  emit('cancel-save')
   if (editor.value) editor.value.destroy()
 })
 </script>
