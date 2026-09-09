@@ -1,49 +1,49 @@
 /* ============================================================
-   data.js  —  收藏夹数据
-   只需编辑此文件即可增删改收藏内容，无需修改页面代码
+   data.js — ข้อมูล Bookmarks
+   แก้ไขไฟล์นี้เพื่อเพิ่ม ลบ หรือแก้ไขเนื้อหา โดยไม่ต้องแก้โค้ดหน้าเว็บ
 
-   卡片 type：
-     'simple'         — 整卡点击打开 url
-     'desc-clickable' — 卡片打开 url，描述文字打开 descUrl
-     'expandable'     — 带展开子菜单（subCards）
-                        描述可用 desc（纯文本）或 descClickable + descUrl（可点击链接）
+   type ของการ์ด:
+     'simple'         — คลิกทั้งการ์ดเพื่อเปิด url
+     'desc-clickable' — การ์ดเปิด url ข้อความคำอธิบายเปิด descUrl
+     'expandable'     — มีเมนูย่อยให้กางออก (subCards)
+                        คำอธิบายใช้ desc (ข้อความล้วน) หรือ descClickable + descUrl (ลิงก์ที่คลิกได้)
 
-   子卡片：
-     两行式  { icon, title, desc, url }
-     紧凑式  { icon, content, url }
-     图片图标用 iconImg 代替 icon；本地跳转加 isLocal: true
+   การ์ดย่อย:
+     แบบ 2 บรรทัด  { icon, title, desc, url }
+     แบบกะทัดรัด   { icon, content, url }
+     ไอคอนรูปภาพใช้ iconImg แทน icon; ลิงก์ภายในเครื่องเพิ่ม isLocal: true
 
-   图标 icon 的三种写法：
-     1. Emoji / 文字
+   วิธีเขียนไอคอน icon 3 รูปแบบ:
+     1. Emoji / ข้อความ
         icon: '🔥'
         icon: 'AI'
 
-     2. 图片链接（使用 iconImg 字段代替 icon）
+     2. ลิงก์รูปภาพ (ใช้ฟิลด์ iconImg แทน icon)
         iconImg: 'https://example.com/logo.png'
 
-     3. 内联 SVG（使用 icon 字段，值为 SVG 字符串，SVG 字符串必须写在同一行）
-        单行写法（普通引号）：
+     3. SVG แบบอินไลน์ (ใช้ฟิลด์ icon ค่าเป็นสตริง SVG บรรทัดเดียว)
+        แบบบรรทัดเดียว (เครื่องหมายคำพูดทั่วไป):
           icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">...</svg>'
 
-   SVG 图标注意事项：
-     - SVG 必须写成单行字符串，多行写法可能导致 JS 解析失败
-     - 必须包含 xmlns="http://www.w3.org/2000/svg" 和 viewBox
-     - 避免使用 <linearGradient> 等带 id 的元素，若使用请确保 id 全局唯一
-     - CSS 中 .link-icon-svg svg 需设为 width/height: 100% 以匹配图片图标大小
-     - 建议 viewBox 统一用 "0 0 128 128"，保持图标风格一致
+   ข้อควรระวังสำหรับไอคอน SVG:
+     - SVG ต้องเป็นสตริงบรรทัดเดียว การเขียนหลายบรรทัดอาจทำให้ JS พาร์สล้มเหลว
+     - ต้องระบุ xmlns="http://www.w3.org/2000/svg" และ viewBox
+     - หลีกเลี่ยงการใช้ id ซ้ำกัน เช่น <linearGradient>
+     - ใน CSS .link-icon-svg svg ควรกำหนด width/height: 100%
+     - แนะนำให้ใช้ viewBox "0 0 128 128" เพื่อความสม่ำเสมอ
 
-   Section 字段：
-     builtin: true=内置不可删 / false=自定义可删
-     key:     唯一标识（内置项锁死，对应旧变量名）
+   ฟิลด์ Section:
+     builtin: true=ในตัวลบไม่ได้ / false=กำหนดเองลบได้
+     key:     ตัวระบุเฉพาะ (ค่าในตัวล็อกไว้)
      kind:    'card' | 'email' | 'contact'
-     dynamic: 是否启用卡片展开/折叠
-     visible: 用户可关闭显示
-     label:   用户可改名 | defaultLabel: 用于恢复默认
+     dynamic: เปิดใช้งานการกาง/พับการ์ดหรือไม่
+     visible: ผู้ใช้สามารถปิดการแสดงผลได้
+     label:   ชื่อที่แสดง | defaultLabel: สำหรับกู้คืนค่าเริ่มต้น
    ============================================================ */
 
 /* ============================================================
-   ⚠️ 以下 __META__ 区块由 scripts/update-timestamp.js 自动维护
-      请勿手动编辑，手动改也会被下一次脚本运行覆盖
+   ⚠️ บล็อก __META__ ด้านล่างดูแลอัตโนมัติโดย scripts/update-timestamp.js
+      โปรดอย่าแก้ไขด้วยตนเอง จะถูกเขียนทับในการรันสคริปต์ครั้งถัดไป
    ============================================================ */
 
 /* __META_START__ */
@@ -55,19 +55,19 @@ window.APP_DATA_META = {
 /* __META_END__ */
 
 var sections = [
-    // ==================== ☁️ 在线U盘 ====================
+    // ==================== ☁️ ไดรฟ์ออนไลน์ ====================
     {
         builtin: true,
         key: 'usbDriveData',
         kind: 'card',
         dynamic: false,
-        label: '☁️ 在线U盘',
+        label: '☁️ ไดรฟ์ออนไลน์',
         visible: true,
         cards: [
             {
                 icon: '👩🏻‍🏫',
                 id: 'lty-xinhua',
-                title: 'lty在线U盘(新华)',
+                title: 'lty ไดรฟ์ออนไลน์ (Xinhua)',
                 url: 'https://www.jianguoyun.com/p/DTPAg6sQptHYCBjA6_YFIAA',
                 type: 'desc-clickable',
                 descClickable: 'to2.top/lty',
@@ -76,7 +76,7 @@ var sections = [
             {
                 id: 'lty-longan',
                 icon: '👩🏻‍⚖️',
-                title: 'lty在线U盘(隆安)',
+                title: 'lty ไดรฟ์ออนไลน์ (Longan)',
                 url: 'https://www.jianguoyun.com/p/DQ0EyaEQptHYCBj9ivkFIAA',
                 type: 'desc-clickable',
                 descClickable: 'to2.top/la',
@@ -85,7 +85,7 @@ var sections = [
             {
                 icon: '💾',
                 id: 'zz',
-                title: 'zz在线U盘',
+                title: 'zz ไดรฟ์ออนไลน์',
                 url: 'https://www.jianguoyun.com/p/DRNDENoQyu2zDBjYlZ0GIAA',
                 type: 'expandable',
                 descClickable: 'to2.top/u',
@@ -93,20 +93,20 @@ var sections = [
                 subCards: [
                     {
                         icon: '📤',
-                        title: '临时上传分享',
-                        desc: 'f66.fun/fun mrr.cc/cc(密码：zz1001)',
+                        title: 'อัปโหลดและแชร์ชั่วคราว',
+                        desc: 'f66.fun/fun mrr.cc/cc (รหัสผ่าน: zz1001)',
                         url: 'https://www.jianguoyun.com/p/DemLEOwQpYHpBRiwtscFIAA'
                     },
                     {
                         icon: '📥',
-                        title: '临时加密上传',
-                        desc: 'n29.net/net (密码：临时ZZ67)',
+                        title: 'อัปโหลดเข้ารหัสชั่วคราว',
+                        desc: 'n29.net/net (รหัสผ่าน: ZZ67 ชั่วคราว)',
                         url: 'https://www.jianguoyun.com/p/Das4Xf8QpYHpBRj68J8GIAA'
                     },
                     {
                         icon: '📁',
-                        title: '在线U备用',
-                        desc: 'mrr.cc/u或n29.net/u',
+                        title: 'ไดรฟ์ออนไลน์สำรอง',
+                        desc: 'mrr.cc/u หรือ n29.net/u',
                         url: 'https://www.jianguoyun.com/p/DRNDENoQyu2zDBjYlZ0GIAA'
                     }
                 ]
@@ -114,7 +114,7 @@ var sections = [
             {
                 id: 'oplist',
                 iconImg: 'https://o.n29.net/p/00%E5%AE%B6%E5%BA%AD%E4%BA%91%E7%A1%AC%E7%9B%9800/%E5%AD%98%E5%82%A8/A1/Share/pubphoto/catcloud.png?sign=vwyhzmBGhTCy_XAWy9wsDkPnuzk0JIZ3ddGOcQFGCPU=:0',
-                title: 'Oplist云硬盘',
+                title: 'Oplist คลาวด์ไดรฟ์',
                 url: 'https://o.n29.net/',
                 type: 'expandable',
                 descClickable: 'n29.net',
@@ -122,25 +122,25 @@ var sections = [
                 subCards: [
                     {
                         iconImg: 'https://o.n29.net/p/00%E5%AE%B6%E5%BA%AD%E4%BA%91%E7%A1%AC%E7%9B%9800/%E5%AD%98%E5%82%A8/A1/Share/pubphoto/1f408_1.png?sign=lrzrBwcoutlJ87ypmRrNxvKTcZHUKoWiOqb1432x4to=:0',
-                        title: '云硬盘',
+                        title: 'คลาวด์ไดรฟ์',
                         desc: 'w.n29.net',
                         url: 'https://992929.xyz/'
                     },
                     {
                         icon: '💽',
-                        title: '备用地址',
+                        title: 'ที่อยู่สำรอง',
                         desc: 'n29.net/29',
                         url: 'http://92999.top:2999/'
                     },
                     {
                         icon: '🌳',
-                        title: '永硕E盘',
+                        title: 'Yongshuo E-Disk',
                         desc: 'cccpan.com',
                         url: 'http://yumumao.ysepan.com/'
                     },
                     {
                         icon: '🖼',
-                        title: '图床',
+                        title: 'โฮสต์ฝากรูปภาพ',
                         desc: 's.ee',
                         url: 'https://s.ee/'
                     }
@@ -148,45 +148,45 @@ var sections = [
             }
         ]
     },
-    // ==================== 📚 授课资料 ====================
+    // ==================== 📚 สื่อการสอน ====================
     {
         builtin: true,
         key: 'teachingData',
         kind: 'card',
         dynamic: false,
-        label: '📚 授课资料',
+        label: '📚 สื่อการสอน',
         visible: true,
         cards: [
             {
                 id: 'chaoxing',
                 icon: '👨‍⚕',
-                title: '超星平台',
+                title: 'แพลตฟอร์ม Chaoxing',
                 url: 'https://gdpu.fanya.chaoxing.com/',
                 type: 'expandable',
-                descClickable: '广药@超星',
+                descClickable: 'Guangyao @ Chaoxing',
                 descUrl: 'https://gdpu.fanya.chaoxing.com/',
                 subCards: [
                     {
                         icon: '🩺',
-                        title: '超星-生理学1',
+                        title: 'Chaoxing - สรีรวิทยา 1',
                         desc: 'f66.fun/mooc1',
                         url: 'https://mooc1.chaoxing.com/mooc-ans/course/214155769.html'
                     },
                     {
                         icon: '🧫',
-                        title: '超星-生理学2',
+                        title: 'Chaoxing - สรีรวิทยา 2',
                         desc: 'f66.fun/mooc',
                         url: 'https://mooc1-2.chaoxing.com/mooc-ans/course/214155769.html'
                     },
                     {
                         icon: '🏛️',
-                        title: '融合门户',
+                        title: 'พอร์ทัลรวม',
                         desc: 'portal.gdpu.edu.cn/#/index',
                         url: 'https://portal.gdpu.edu.cn/#/index'
                     },
                     {
                         icon: '🌐',
-                        title: '校园网登录',
+                        title: 'เข้าสู่ระบบเครือข่ายมหาวิทยาลัย',
                         desc: '172.21.199.252',
                         url: 'http://172.21.199.252/'
                     }
@@ -195,7 +195,7 @@ var sections = [
             {
                 id: 'ppt',
                 icon: '👨🏻‍🏫',
-                title: '生理学PPT',
+                title: 'สไลด์ PPT สรีรวิทยา',
                 url: 'https://www.jianguoyun.com/p/DczPqnIQyu2zDBi3oYMGIAA',
                 type: 'expandable',
                 descClickable: 'f66.fun/slx',
@@ -203,26 +203,26 @@ var sections = [
                 subCards: [
                     {
                         icon: '👨🏻‍🔬',
-                        title: '广药实验视频',
+                        title: 'วิดีโอการทดลอง Guangyao',
                         desc: 'f66.fun/ve',
                         url: 'https://www.jianguoyun.com/p/DRHT5LcQzLmCCRj5x6kF'
                     },
                     {
                         icon: '🐰',
-                        title: '其他实验视频',
-                        desc: '其他操作视频',
+                        title: 'วิดีโอการทดลองอื่นๆ',
+                        desc: 'วิดีโอสาธิตอื่นๆ',
                         url: 'https://www.jianguoyun.com/p/DYsBRugQzLmCCRjd74AG'
                     },
                     {
                         icon: '🩺',
-                        title: '生理知识大纲',
-                        desc: '关联临床知识',
+                        title: 'โครงร่างความรู้สรีรวิทยา',
+                        desc: 'ความรู้ทางคลินิกที่เกี่ยวข้อง',
                         url: 'tools/slxzsd.html?from=index',
                         isLocal: true
                     },
                     {
                         icon: '🚑',
-                        title: '急救知识',
+                        title: 'ความรู้การปฐมพยาบาล',
                         desc: 'f66.fun/aid',
                         url: 'https://www.jianguoyun.com/p/DdCoU9cQzLmCCRia2bgFIAA'
                     }
@@ -231,32 +231,32 @@ var sections = [
             {
                 id: 'medical-tools',
                 icon: '🏥',
-                title: '在线医学工具',
+                title: 'เครื่องมือการแพทย์ออนไลน์',
                 url: 'https://www.medsci.cn/medsci-tools',
                 type: 'expandable',
-                desc: '算/表/统',
+                desc: 'คำนวณ / ตาราง / สถิติ',
                 subCards: [
                     {
                         icon: '💉',
-                        title: '梅斯医学计算器',
+                        title: 'เครื่องคิดเลขการแพทย์ MedSci',
                         desc: 'm.medsci.cn/scale/index.do',
                         url: 'https://m.medsci.cn/scale/index.do'
                     },
                     {
                         icon: '💊',
-                        title: '用药助手',
+                        title: 'ผู้ช่วยการใช้ยา',
                         desc: 'drugs.dxy.cn',
                         url: 'https://drugs.dxy.cn/'
                     },
                     {
                         icon: '📐',
-                        title: '医脉通医学计算',
+                        title: 'การคำนวณทางการแพทย์ Medlive',
                         desc: 'cals.medlive.cn',
                         url: 'https://cals.medlive.cn/'
                     },
                     {
                         icon: '🌏',
-                        title: 'Mstata医学统计',
+                        title: 'สถิติการแพทย์ Mstata',
                         desc: 'mstata.com/',
                         url: 'https://www.mstata.com/'
                     }
@@ -265,26 +265,26 @@ var sections = [
             {
                 id: 'calc-tools',
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect x="20" y="10" width="88" height="108" rx="16" fill="#5C6BC0"/><rect x="20" y="10" width="88" height="46" rx="16" fill="#fff" opacity="0.1"/><rect x="32" y="22" width="64" height="30" rx="6" fill="#B2DFDB"/><text x="64" y="45" text-anchor="middle" font-family="Arial" font-weight="900" font-size="22" fill="#004D40">AI</text><path d="M88 25l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z" fill="#FFD600"/><circle cx="44" cy="72" r="7" fill="#FFAB91"/><circle cx="64" cy="72" r="7" fill="#FFAB91"/><circle cx="84" cy="72" r="7" fill="#FFE082"/><circle cx="44" cy="96" r="7" fill="#E8EAF6"/><circle cx="64" cy="96" r="7" fill="#E8EAF6"/><circle cx="84" cy="96" r="7" fill="#66BB6A"/></svg>',
-                title: '在线计算器',
+                title: 'เครื่องคิดเลขออนไลน์',
                 url: 'https://www.geogebra.org/',
                 type: 'expandable',
-                desc: '在线算',
+                desc: 'คำนวณออนไลน์',
                 subCards: [
                     {
                         icon: '📈',
-                        title: 'Desmos图形计算器',
+                        title: 'เครื่องคิดเลขกราฟิก Desmos',
                         desc: 'desmos.com/calculator',
                         url: 'https://www.desmos.com/calculator?lang=zh-CN'
                     },
                     {
                         icon: '⌨️',
-                        title: 'wolframalpha计算智能',
+                        title: 'WolframAlpha ปัญญาประดิษฐ์การคำนวณ',
                         desc: 'wolframalpha.com',
                         url: 'https://wolframalpha.com'
                     },
                     {
                         icon: '🔢',
-                        title: 'GeoGebra计算套件',
+                        title: 'ชุดโปรแกรมคำนวณ GeoGebra',
                         desc: 'geogebra.org/calculator',
                         url: 'https://www.geogebra.org/calculator'
                     }
@@ -293,33 +293,33 @@ var sections = [
             {
                 icon: '👨🏻‍🔧',
                 id: 'ohthercalc-tools',
-                title: '在线工具',
+                title: 'เครื่องมือออนไลน์',
                 url: '/t',
                 type: 'expandable',
-                desc: '在线小工具',
+                desc: 'ยูทิลิตี้ออนไลน์',
                 subCards: [
                     {
                         icon: '🧪',
                         title: 'SIMPOP',
-                        desc: '中学实验模拟',
+                        desc: 'จำลองการทดลองมัธยม',
                         url: 'https://simpop.org/'
                     },
                     {
                         icon: '🧲',
                         title: 'myphysics',
-                        desc: '物理教学资料库',
+                        desc: 'คลังสื่อการสอนฟิสิกส์',
                         url: 'https://myphysics-lab.com/'
                     },
                     {
                         icon: '🛠️',
-                        title: '一个木函',
-                        desc: '小工具集',
+                        title: 'YiMuHan',
+                        desc: 'รวมเครื่องมือขนาดเล็ก',
                         url: 'https://ol.woobx.cn/'
                     },
                     {
                         icon: '🔄',
-                        title: '转换文件格式',
-                        desc: '全格式转换',
+                        title: 'แปลงรูปแบบไฟล์',
+                        desc: 'แปลงไฟล์ทุกรูปแบบ',
                         url: 'https://www.aconvert.com/cn/'
                     }
                 ]
@@ -330,17 +330,17 @@ var sections = [
                 title: 'ScanDex',
                 url: 'https://scandex.n29.net',
                 type: 'expandable',
-                desc: '扫描图片管理',
+                desc: 'จัดการภาพสแกน',
                 subCards: [
                     {
                         icon: '📇',
                         title: 'ImgToDoc',
-                        desc: 'ImgToDoc服务（仅内网）',
+                        desc: 'บริการ ImgToDoc (เครือข่ายภายในเท่านั้น)',
                         url: 'http://192.168.2.166.:8787'
                     },
                     {
                         icon: '📓',
-                        title: 'AI错题本',
+                        title: 'สมุดบันทึกข้อผิดพลาด AI',
                         desc: 'wn.n29.net',
                         url: 'https://wn.n29.net/'
                     }
@@ -348,13 +348,13 @@ var sections = [
             }
         ]
     },
-    // ==================== 🖥️ 网络资源 ====================
+    // ==================== 🖥️ แหล่งข้อมูลออนไลน์ ====================
     {
         builtin: true,
         key: 'onlineAIData',
         kind: 'card',
         dynamic: true,
-        label: '🖥️ 网络资源',
+        label: '🖥️ แหล่งข้อมูลออนไลน์',
         visible: true,
         cards: [
             {
@@ -363,18 +363,18 @@ var sections = [
                 title: 'Qwen',
                 url: 'https://chat.qwen.ai/',
                 type: 'expandable',
-                desc: '阿里千问等集合',
+                desc: 'รวม Qwen และอื่นๆ',
                 subCards: [
                     {
                         icon: '🤿',
                         title: 'DeepSeek',
-                        desc: '深度求索',
+                        desc: 'DeepSeek ผู้ช่วย AI',
                         url: 'https://www.deepseek.com/'
                     },
                     {
                         icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#897EFF"/><stop offset="100%" stop-color="#5A42F2"/></linearGradient></defs><rect x="1" y="1" width="126" height="126" rx="28" fill="url(#g)" stroke="#FFF" stroke-width="1"/><g transform="translate(64 66) rotate(-22) scale(1.28)"><path fill="#FCFCFF" d="M-29-18L-40-37C-43-42-35-47-28-43L-12-33C-5-35 5-35 12-33L28-43C35-47 43-42 40-37L29-18C36-12 39-2 39 10C39 29 24 42 0 42C-24 42-39 29-39 10C-39-2-36-12-29-18Z"/><rect x="-16" y="-2" width="7" height="17" rx="3.5" fill="#6B58FF" transform="rotate(-12 -12 6)"/><rect x="9" y="-2" width="7" height="17" rx="3.5" fill="#6B58FF" transform="rotate(-12 13 6)"/></g></svg>',
                         title: 'WorkBuddy',
-                        desc: '腾讯AI助手',
+                        desc: 'ผู้ช่วย AI ของ Tencent',
                         url: 'https://www.codebuddy.cn/home/'
                     },
                     {
@@ -382,12 +382,12 @@ var sections = [
                         title: 'kimi',
                         desc: 'Kimi AI',
                         url: 'https://www.kimi.com/',
-                        comment: '[KIMI API 开放平台](https://platform.kimi.com/)'
+                        comment: '[แพลตฟอร์ม KIMI API](https://platform.kimi.com/)'
                     },
                     {
                         icon: '💁‍',
-                        title: '豆包',
-                        desc: '字节跳动AI助手',
+                        title: 'Doubao',
+                        desc: 'ผู้ช่วย AI ของ ByteDance',
                         url: 'https://www.doubao.com/'
                     }
                 ]
@@ -396,32 +396,32 @@ var sections = [
                 id: 'poe',
                 icon: '🧙‍',
                 title: 'POE',
-                desc: 'AI助手集合',
+                desc: 'รวมผู้ช่วย AI',
                 url: 'https://poe.com/',
                 type: 'expandable',
                 subCards: [
                     {
                         icon: '✦',
                         title: 'Gemini',
-                        desc: 'G家的AI',
+                        desc: 'AI จาก Google',
                         url: 'https://gemini.google.com/'
                     },
                     {
                         icon: '💬',
                         title: 'ChatGPT',
-                        desc: 'OpenAI聊天机器人',
+                        desc: 'แชทบอทของ OpenAI',
                         url: 'https://chat.openai.com/'
                     },
                     {
                         icon: '🦊',
                         title: 'Grok',
-                        desc: 'xAI的AI助手',
+                        desc: 'ผู้ช่วย AI จาก xAI',
                         url: 'https://grok.com/'
                     },
                     {
                         icon: '🎆',
                         title: 'Claude',
-                        desc: '擅长写代码',
+                        desc: 'เก่งด้านการเขียนโค้ด',
                         url: 'https://www.anthropic.com/claude'
                     }
                 ]
@@ -429,33 +429,33 @@ var sections = [
             {
                 id: 'mitasearch',
                 icon: '🔎',
-                title: '秘塔搜索',
-                desc: 'AI实用工具',
+                title: 'Mita Search',
+                desc: 'เครื่องมือ AI ประยุกต์',
                 url: 'https://metaso.cn/',
                 type: 'expandable',
                 subCards: [
                     {
                         icon: '🔬',
-                        title: '纳米搜索',
-                        desc: 'AI搜索工具',
+                        title: 'Nami Search',
+                        desc: 'เครื่องมือค้นหา AI',
                         url: 'https://www.n.cn/'
                     },
                     {
                         icon: '✵',
                         title: 'Perplexity',
-                        desc: 'AI搜索',
+                        desc: 'ค้นหาด้วย AI',
                         url: 'https://www.perplexity.ai/'
                     },
                     {
                         icon: '👁️‍🗨️',
                         title: 'BibiGPT',
-                        desc: '音视频AI总结',
+                        desc: 'สรุปเสียงและวิดีโอด้วย AI',
                         url: 'https://bibigpt.co/'
                     },
                     {
                         icon: '🐈',
-                        title: '若愚',
-                        desc: '文档翻译',
+                        title: 'RuoYu',
+                        desc: 'แปลเอกสาร',
                         url: 'https://ruoyu.dingyu.me/'
                     }
                 ]
@@ -471,8 +471,8 @@ var sections = [
             {
                 id: 'freedidi',
                 icon: '👫🏻',
-                title: '零度博客',
-                desc: '零度博客',
+                title: 'Zero Degree Blog',
+                desc: 'บล็อก Zero Degree',
                 url: 'https://www.freedidi.com/',
                 type: 'simple'
             },
@@ -504,26 +504,26 @@ var sections = [
                 id: 'AddressGeneratorFe',
                 icon: '🗺️',
                 title: 'AddressGenerator',
-                desc: '地址生成器',
+                desc: 'เครื่องมือสุ่มที่อยู่',
                 url: 'https://addr.f66.fun/',
                 type: 'simple'
             }
         ]
     },
-    // ==================== 🎬 视频聚合 ====================
+    // ==================== 🎬 วิดีโอรวม ====================
     {
         builtin: true,
         key: 'videoData',
         kind: 'card',
         dynamic: true,
-        label: '🎬 视频聚合',
+        label: '🎬 วิดีโอรวม',
         visible: true,
         cards: [
             {
                 id: 'lunatv',
                 icon: '🌗',
                 title: 'LunaTV-Zb',
-                desc: '综合影视平台',
+                desc: 'แพลตฟอร์มภาพยนตร์และซีรีส์รวม',
                 url: 'https://m.f66.fun/',
                 type: 'expandable',
                 subCards: [
@@ -548,7 +548,7 @@ var sections = [
                     {
                         icon: '🔍',
                         title: 'pansou',
-                        desc: '网盘搜索',
+                        desc: 'ค้นหาบนคลาวด์ไดรฟ์',
                         url: 'https://pso.992929.xyz/'
                     }
                 ]
@@ -556,14 +556,14 @@ var sections = [
             {
                 id: 'yingshiselin',
                 icon: '🌲',
-                title: '影视森林',
-                desc: '资源导航',
+                title: 'Yingshi Senlin',
+                desc: 'นำทางแหล่งข้อมูล',
                 url: 'https://www.tvtv1.cc/',
                 type: 'expandable',
                 subCards: [
                     {
                         icon: '🔗',
-                        content: '网址发布页',
+                        content: 'หน้าประกาศ URL',
                         url: 'https://www.tvtv.cc/'
                     },
                     {
@@ -576,20 +576,20 @@ var sections = [
             {
                 icon: '🎥',
                 id: 'guanying',
-                title: '七味观影',
+                title: 'Qiwei Viewing',
                 url: 'https://www.gmp4.com/',
                 type: 'expandable',
-                desc: '影视大全',
+                desc: 'รวมภาพยนตร์และซีรีส์',
                 subCards: [
                     {
                         icon: '🎬',
-                        content: '七味网址发布',
+                        content: 'ประกาศ URL Qiwei',
                         url: 'https://www.qn63.com'
                     },
                     {
                         icon: '👻',
-                        content: '观影网址发布(fq)',
-                        url: 'https://www.挂了.com/'
+                        content: 'ประกาศ URL สำหรับรับชม (VPN)',
+                        url: 'https://www.offline-mirror.com/'
                     },
                     {
                         icon: '🎭',
@@ -607,15 +607,15 @@ var sections = [
                 id: 'xiuluoyingshi',
                 icon: '🐮',
                 title: 'Moovie',
-                desc: '影视聚合搜索',
+                desc: 'ค้นหาภาพยนตร์และซีรีส์แบบรวมศูนย์',
                 url: 'https://moovie.c2v2.com/',
                 type: 'simple'
             },
             {
                 id: 'maitianyingshi',
                 icon: '‍🌾',
-                title: '麦田影院',
-                descClickable: 'mtyy.tv（网址发布）',
+                title: 'Maitian Cinema',
+                descClickable: 'mtyy.tv (ประกาศ URL)',
                 descUrl: 'https://www.mtyy.tv/',
                 url: 'https://mtyy5.com/',
                 type: 'desc-clickable'
@@ -623,146 +623,146 @@ var sections = [
             {
                 id: 'changzhanquan',
                 icon: '🎨',
-                title: '厂长资源',
-                desc: '影视在线观看',
+                title: 'Changzhang Resources',
+                desc: 'ดูภาพยนตร์และซีรีส์ออนไลน์',
                 url: 'https://cz01.vip/',
                 type: 'simple'
             },
             {
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="18" fill="#4682B4"/><text x="50" y="93" text-anchor="middle" font-family="Arial Narrow, Helvetica Neue, Arial, sans-serif" font-size="108" font-stretch="condensed" font-weight="700" fill="#fff" transform="scale(.78 1) translate(14 0)">dd</text></svg>',
                 id: 'card_mq1d6eo1_l6xh',
-                title: '低端影视',
+                title: 'DiDuan Movie',
                 url: 'https://ddys.app/',
                 type: 'simple',
-                desc: '高清、品质'
+                desc: 'คุณภาพสูง คมชัด HD'
             },
             {
                 icon: '🍃',
                 id: 'seedhub',
-                title: 'SeedHub(下载站)',
+                title: 'SeedHub (เว็บดาวน์โหลด)',
                 url: 'https://seeduck.cc/',
                 type: 'desc-clickable',
-                descClickable: '网址发布页',
+                descClickable: 'หน้าประกาศ URL',
                 descUrl: 'https://seeduck.cc/zuixin-di-zhi/'
             },
             {
                 icon: '🔻',
                 id: 'butailing',
-                title: '不太灵(下载站)',
+                title: 'BuTaiLing (เว็บดาวน์โหลด)',
                 url: 'https://www.6bt0.com/',
                 type: 'desc-clickable',
-                descClickable: '网址发布页',
+                descClickable: 'หน้าประกาศ URL',
                 descUrl: 'https://www.butailing.com/'
             },
             {
                 icon: '🏰',
                 id: 'dianyingtiantang',
-                title: '电影天堂',
+                title: 'Dytt8',
                 url: 'https://www.dygod.vip/',
                 type: 'simple',
-                desc: '经典影视下载'
+                desc: 'ดาวน์โหลดภาพยนตร์คลาสสิก'
             },
             {
                 icon: '📺',
                 id: 'moovie',
-                title: '雪落影视',
+                title: 'Xueluo Movie',
                 url: 'https://v.xl01.eu.cc/',
                 type: 'simple',
-                desc: '资源丰富'
+                desc: 'แหล่งข้อมูลหลากหลาย'
             },
             {
                 id: '7080wang',
                 icon: '📹',
-                title: '7080网',
-                desc: '怀旧影视资源',
+                title: '7080 Net',
+                desc: 'แหล่งข้อมูลภาพยนตร์ย้อนยุค',
                 url: 'https://7080.wang/',
                 type: 'simple'
             },
             {
                 icon: '🐻',
                 id: 'cilixiong',
-                title: '磁力熊',
+                title: 'Cilixiong Magnet',
                 url: 'https://www.cilixiong.org/',
                 type: 'desc-clickable',
-                descClickable: 'cilixiong.cc（备用）',
+                descClickable: 'cilixiong.cc (สำรอง)',
                 descUrl: 'https://www.cilixiong.cc/',
                 comment: 'F'
             },
             {
                 icon: '🎬',
                 id: '4kyingshi',
-                title: '4K影视',
+                title: '4K Movie',
                 url: 'https://www.4kvm.tv/',
                 type: 'desc-clickable',
-                descClickable: '网址发布页',
+                descClickable: 'หน้าประกาศ URL',
                 descUrl: 'https://4kvm.site/',
                 comment: 'F'
             },
             {
                 icon: '🍚',
                 id: 'fantaiying',
-                title: '饭太硬(导航)',
-                url: 'https://www.饭太硬.com/',
+                title: 'FanTaiYing (นำทาง)',
+                url: 'https://www.fantaiying.com/',
                 type: 'desc-clickable',
-                descClickable: '备用网址',
+                descClickable: 'URL สำรอง',
                 descUrl: 'https://tvboxconf.clbug.com/',
                 comment: 'F'
             }
         ]
     },
-    // ==================== 📨 联系方式 ====================
+    // ==================== 📨 อีเมล ====================
     {
         builtin: true,
         key: 'emailData',
         kind: 'email',
         dynamic: false,
-        label: '📨 联系方式',
+        label: '📨 อีเมล',
         visible: true,
         cards: [
             {
                 icon: '✉️',
-                title: '邮箱1',
+                title: 'อีเมล 1',
                 address: 'aabb(AT)cc.cc',
                 url: 'http://aabb.cc.cc',
                 mailto: 'http://aabb.cc.cc'
             },
             {
                 icon: '📪',
-                title: '邮箱2',
+                title: 'อีเมล 2',
                 address: 'aaabbb(AT)cc.cc',
                 url: 'http://aaabbb.cc.cc',
                 mailto: 'http://aaabbb.cc.cc'
             },
             {
                 icon: '📬',
-                title: '邮箱3',
+                title: 'อีเมล 3',
                 address: 'abab(AT)cc.cc',
                 url: 'http://abab.cc.cc',
                 mailto: 'http://abab.cc.cc'
             },
             {
                 icon: '📭',
-                title: '邮箱4',
+                title: 'อีเมล 4',
                 address: 'n(AT)n29.net',
                 url: 'https://o.n29.net',
                 mailto: 'https://o.n29.net'
             },
             {
                 icon: '🌐',
-                title: '邮箱5',
+                title: 'อีเมล 5',
                 address: 'm(AT)mrr.cc',
                 url: 'https://mrr.cc',
                 mailto: 'https://mrr.cc'
             }
         ]
     },
-    // ==================== 📨 其他联系方式 ====================
+    // ==================== 📨 ช่องทางติดต่ออื่นๆ ====================
     {
         builtin: true,
         key: 'contactData',
         kind: 'contact',
         dynamic: false,
-        label: '📨 其他联系方式',
+        label: '📨 ช่องทางติดต่ออื่นๆ',
         visible: true,
         cards: [
             {
@@ -775,14 +775,14 @@ var sections = [
         ]
     },
 
-    // ==================== 自定义大类（可在配置后台增删改） ====================
-    // ----- 💟私人项目 -----
+    // ==================== หมวดหมู่กำหนดเอง (เพิ่ม ลบ แก้ไข ได้ในหน้า Settings) ====================
+    // ----- 💟 โปรเจกต์ส่วนตัว -----
     {
         builtin: false,
         key: 'custom_moyq5cad_ezc0r',
         kind: 'card',
         dynamic: true,
-        label: '💟私人项目',
+        label: '💟 โปรเจกต์ส่วนตัว',
         visible: true,
         encrypted: true,
         enc: {

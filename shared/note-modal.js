@@ -1,40 +1,40 @@
 /* ================================================================================
  * shared/note-modal.js
  * ─────────────────────────────────────────────────────────────────────────────
- * 卡片注释（comment）模态框 + 轻量 Markdown 渲染 + Markdown 工具栏 + 多主题
+ * Modal หมายเหตุการ์ด (comment) + การเรนเดอร์ Markdown น้ำหนักเบา + แถบเครื่องมือ Markdown + รองรับหลายธีม
  *
- * ★ 本版变更：
- *   - 全页面波纹：点击 .note-body 时,波纹元素(.note-ripple-fullpage)
- *     被 append 到 .note-mask,position: fixed 覆盖整个视口,从点击点扩散。
- *     按钮波纹仍保留本地波纹(.note-ripple)。
- *   - 悬停提示文字:"点击跳转:<具体URL>"(带上 URL)。
- *   - 备注内的链接悬停提示显示链接自身 href(不再继承 body 的卡片 URL 提示)。
- *   - 未持久化保存的状态提示常驻:
- *       · 查看模式下:若 overrides 里存在该卡记录 → footer 里常驻显示提示
- *       · 编辑模式下:status 元素初始就预填这个提示(编辑一进来就能看到)
- *       · 成功同步到服务器后,overrides 被清空 → 下次打开不再出现提示
- *   - 新增对外 API:clearOverrides()(供 config.html 保存完文件后调用)
- *   - ★★ 修复:本地模式下"清空注释(删除)"也必须被记录为 pending。
- *           即使 finalComment 为空字符串,也要写入 overrides(代表"本地已删除、
- *           待同步到文件")。只有"成功同步到服务器"后才走 removeOverride 彻底清除。
+ * ★ การเปลี่ยนแปลงในเวอร์ชันนี้:
+ *   - ระลอกคลื่นเต็มหน้าจอ: เมื่อคลิก .note-body
+ *     กระจายจากจุดคลิกครอบคลุมทั้งหน้าจอ
+ *     ปุ่มยังคงใช้ระลอกคลื่นเฉพาะที่ (.note-ripple)
+ *   - ข้อความ hover: "คลิกเพื่อเปิด: <URL>"
+ *   - ลิงก์ในหมายเหตุแสดง href ของตนเองเมื่อ hover
+ *   - การแจ้งเตือนสถานะที่ยังไม่ได้บันทึกถาวร:
+ *       · ในโหมดดู: แสดงข้อความเตือนที่ footer ถาวร
+ *       · ในโหมดแก้ไข: แสดงข้อความเตือนทันทีที่เปิด
+ *       · หลังซิงค์กับเซิร์ฟเวอร์สำเร็จ แจ้งเตือนจะหายไป
+ *   - เพิ่ม API ภายนอก: clearOverrides()
+ *   - บันทึกการลบหมายเหตุในโหมดออฟไลน์เป็น pending
+ *           บันทึกลง overrides แม้ค่าจะว่าง
+ *           จนกว่าจะซิงค์สำเร็จจึงลบออกจาก overrides
  *
- * 行为规则(与 fav-page.js 协同):
- *   1. 点击卡片时:
- *        - 有 comment  → 弹出注释模态框(有 url 时可点击注释空白区打开 url)
- *        - 无 comment  → 直接打开 url
- *   2. 卡片可以只有 comment 而没有 url(纯备忘卡片)
- *   3. 权限判定:sessionStorage['bm_cfg_enc_pwd'] 存在 ⇒ 已解锁 ⇒ 可编辑
- *      ★ 加密分类(meta.encrypted === true)的卡片前端不允许编辑
- *   4. 已解锁用户:
- *        - 有 comment:模态框内出现"编辑"
- *        - 无 comment:卡片右键 / 长按 → 打开编辑器添加
+ * กฎการทำงาน (ทำงานร่วมกับ fav-page.js):
+ *   1. เมื่อคลิกการ์ด:
+ *        - มี comment → แสดง Modal หมายเหตุ (คลิกพื้นที่ว่างเปิด url ได้)
+ *        - ไม่มี comment → เปิด url ทันที
+ *   2. การ์ดสามารถมีเฉพาะ comment โดยไม่มี url ได้ (การ์ดบันทึกช่วยจำ)
+ *   3. สิทธิ์: มีรหัสผ่านใน sessionStorage ⇒ Unlock แล้ว ⇒ แก้ไขได้
+ *      ★ การ์ดในหมวดหมู่เข้ารหัสไม่อนุญาตให้แก้ไขที่หน้าบ้าน
+ *   4. ผู้ใช้ที่ Unlock แล้ว:
+ *        - มี comment: แสดงปุ่ม "แก้ไข"
+ *        - ไม่มี comment: คลิกขวา / กดค้างที่การ์ด → เปิดตัวแก้ไข
  *
- * 编辑器按钮:
- *   - 只有【返回】【保存】;清空 textarea 再点保存 = 删除注释
+ * ปุ่มตัวแก้ไข:
+ *   - มีเพียง [ย้อนกลับ] และ [บันทึก]; ล้างข้อความแล้วบันทึก = ลบหมายเหตุ
  *
- * 主题(对应 index1-5):nebula / notion / stripe / dark / mint
+ * ธีม: nebula / notion / stripe / dark / mint
  *
- * 对外 API:
+ * API ภายนอก:
  *   window.NoteModal = { show, openEditor, canEdit, renderMarkdown,
  *                        applyOverrides, getOverrides, clearOverrides };
  * ================================================================================ */
@@ -45,7 +45,7 @@
     var LS_NOTES  = 'bm_comment_overrides';
     var CONFIG_HREF = 'config.html';
 
-    /* ───────────────────────── 老数据迁移 ───────────────────────── */
+    /* ───────────────────────── ย้ายข้อมูลเก่า ───────────────────────── */
     (function migrateFromSession() {
         try {
             var ss = sessionStorage.getItem(LS_NOTES);
@@ -58,7 +58,7 @@
         } catch (e) {}
     })();
 
-    /* ───────────────────────── 按钮局部波纹 ───────────────────────── */
+    /* ───────────────────────── ระลอกคลื่นเฉพาะปุ่ม ───────────────────────── */
     function attachRipple(el) {
         if (!el || el.__rippleAttached) return;
         el.__rippleAttached = true;
@@ -78,10 +78,10 @@
         });
     }
 
-    /* ───────────────────────── ★ 全页面波纹 ─────────────────────────
-     * 监听 bodyEl 的 mousedown;波纹元素创建在 container(.note-mask)里,
-     * position: fixed 覆盖整个视口,从点击点向全屏扩散。
-     * box 的 z-index: 2 会浮在波纹上方,所以波纹视觉上在 box 周围可见。
+    /* ───────────────────────── ระลอกคลื่นเต็มหน้าจอ ─────────────────────────
+     * ดักจับ mousedown บน bodyEl และสร้างระลอกคลื่นใน container (.note-mask)
+     * position: fixed ครอบคลุมทั้งหน้าจอ กระจายจากจุดคลิก
+     * z-index: 2 ของ box จะลอยอยู่เหนือระลอกคลื่น
      * ─────────────────────────────────────────────────────────── */
     function attachFullPageRipple(bodyEl, container) {
         if (!bodyEl || bodyEl.__fullRippleAttached) return;
@@ -89,14 +89,14 @@
         bodyEl.addEventListener('mousedown', function(e) {
             if (bodyEl.__rippleDisabled) return;
             if (e.button !== 0) return;
-            // 点在工具栏/textarea/按钮里时不要触发(理论上 body 在查看模式下不会有这些)
+            // ไม่ทริกเกอร์เมื่อคลิกบนเครื่องมือ/textarea/ปุ่ม
             if (e.target && e.target.closest &&
                 e.target.closest('.note-editor, .note-toolbar, .note-btn, .note-tb-btn')) {
                 return;
             }
             var vw = window.innerWidth  || document.documentElement.clientWidth;
             var vh = window.innerHeight || document.documentElement.clientHeight;
-            // 覆盖整个视口(以最远对角线 * 2 作为 diameter,确保从任意点击点都能铺满)
+            // ครอบคลุมทั้งหน้าจอ
             var size = Math.sqrt(vw * vw + vh * vh) * 2.2;
             var r = document.createElement('span');
             r.className = 'note-ripple-fullpage';
@@ -109,7 +109,7 @@
         });
     }
 
-    /* ───────────────────────── 主题检测 ───────────────────────── */
+    /* ───────────────────────── ตรวจสอบธีม ───────────────────────── */
     var FAV_THEME_MAP = {
         'index1.html': 'nebula',
         'index2.html': 'notion',
@@ -136,7 +136,7 @@
         return 'nebula';
     }
 
-    /* ───────────────────────── 权限 ───────────────────────── */
+    /* ───────────────────────── การตรวจสอบสิทธิ์ ───────────────────────── */
     function canEdit(entry) {
         try {
             if (!sessionStorage.getItem(PWD_KEY)) return false;
@@ -145,7 +145,7 @@
         return true;
     }
 
-    /* ───────────────────────── 在线/本地模式检测 ───────────────────────── */
+    /* ───────────────────────── ตรวจสอบโหมดออนไลน์/ออฟไลน์ ───────────────────────── */
     var _onlineModeCache = null;
     async function detectOnlineMode() {
         if (_onlineModeCache !== null) return _onlineModeCache;
@@ -159,13 +159,13 @@
     }
 
     /* ───────────────────────── meta → /api/comment path ───────────────────────── */
-    // ★ 从 sections 数组中查找 section key 对应的下标
+    // ★ ค้นหาดัชนีของ section key ในอาร์เรย์ sections
     function findSectionIndex(sectionKey) {
-        // 优先用 fav-page.js 的 normalizeData 建立的索引映射
+        // ใช้แผนผังดัชนีของ normalizeData เป็นลำดับแรก
         if (window.__sectionIndexMap && window.__sectionIndexMap[sectionKey] != null) {
             return window.__sectionIndexMap[sectionKey];
         }
-        // fallback：遍历 sections 数组
+        // fallback: วนลูปอาร์เรย์ sections
         var s = window.__sections || window.sections;
         if (Array.isArray(s)) {
             for (var i = 0; i < s.length; i++) {
@@ -180,13 +180,13 @@
         var sk = meta.sectionKey;
         if (!sk) return null;
 
-        // ★ 新格式：path = ['sections', sectionIdx, 'cards', cardIdx, ..., 'comment']
+        // ★ รูปแบบใหม่: path = ['sections', sectionIdx, 'cards', cardIdx, ..., 'comment']
         var sectionIdx = findSectionIndex(sk);
         if (sectionIdx < 0) return null;
 
         var path;
         if (meta.emailIndex != null) {
-            // 邮箱卡片：直接定位到 emailData section 中的第 emailIndex 个卡片
+            // การ์ดอีเมล: ชี้ไปยังการ์ดที่ emailIndex ใน emailData section
             path = ['sections', sectionIdx, 'cards', meta.emailIndex];
             path.push('comment');
             return path;
@@ -200,9 +200,9 @@
         return path;
     }
 
-    /* ───────────────────────── HTML 转义 ─────────────────────────
-     * 注意：& < > 必须转义防止节点注入；" ' 同时转义是为了在被嵌入
-     * 属性值时也安全（HTML 实体在文本节点内显示效果相同，无外观差异）。
+    /* ───────────────────────── HTML Escape ─────────────────────────
+     * หมายเหตุ: ต้อง escape เพื่อป้องกัน XSS
+     * และปลอดภัยเมื่ออยู่ในแอตทริบิวต์
      */
     function esc(s) {
         return String(s).replace(/&/g, '&amp;')
@@ -212,9 +212,9 @@
                         .replace(/'/g, '&#39;');
     }
 
-    /* ───────────────────────── URL 白名单 ─────────────────────────
-     * Markdown 链接 [text](url) 的 url 必须过白名单，防止 javascript: 协议 XSS。
-     * 图片 ![alt](src) 的 src 单独走 imgUrl 白名单，允许 data:image/。
+    /* ───────────────────────── ไวต์ลิสต์ URL ─────────────────────────
+     * URL ของ Markdown link ต้องผ่านไวต์ลิสต์ เพื่อป้องกัน javascript: XSS
+     * รูปภาพ ![alt](src) ใช้ imgUrl ไวต์ลิสต์ รองรับ data:image/
      */
     function safeMdUrl(u) {
         var s = String(u || '').trim();
@@ -229,7 +229,7 @@
         return '';
     }
 
-    /* ───────────────────────── SVG 安全过滤 ───────────────────────── */
+    /* ───────────────────────── กรองความปลอดภัยของ SVG ───────────────────────── */
     function sanitizeSVG(raw) {
         if (!raw || typeof raw !== 'string') return '';
         return raw
@@ -241,7 +241,7 @@
     }
 
     /* ════════════════════════════════════════════════════════════
-     * 轻量 Markdown 渲染器(+ 裸 URL 自动识别)
+     * ตัวเรนเดอร์ Markdown น้ำหนักเบา (+ ตรวจจับ URL อัตโนมัติ)
      * ════════════════════════════════════════════════════════════ */
     function renderMarkdown(src) {
         if (!src) return '';
@@ -266,9 +266,9 @@
 
             if (/^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
 
-            // ★ 所有用户文本内容统一过 esc()，防止 <img onerror=...> 之类直接拼进 innerHTML。
-            //   后续的 markdown 标记替换 (**bold**, [text](url), 裸 URL 等) 在已转义文本上做，
-            //   text/alt 在替换器内不再二次 esc（避免 &lt; 被双重转义成 &amp;lt;）。
+            // ข้อความของผู้ใช้ทั้งหมดผ่าน esc() เพื่อป้องกัน XSS
+            // แทนที่ Markdown บนข้อความที่ escape แล้ว
+            // เพื่อหลีกเลี่ยงการ escape ซ้ำ
             var hm = /^(#{1,6})\s+(.*)$/.exec(line);
             if (hm) { out.push('<h' + hm[1].length + '>' + esc(hm[2]) + '</h' + hm[1].length + '>'); i++; continue; }
 
@@ -334,17 +334,17 @@
 
         var html = out.join('\n');
 
-        // ★ 图片/链接：url 必过白名单防 javascript: 协议；
-        //   alt/text 已经在上面逐行 esc 过了，这里不能再 esc（会双重转义成 &amp;lt;）。
-        //   url 已经经过 esc（因为它出现在段落/标题等文本里），属性值里使用安全。
+        // รูปภาพ/ลิงก์: url ต้องผ่านไวต์ลิสต์ป้องกัน javascript:
+        // alt/text ผ่าน esc แล้ว ไม่ escape ซ้ำ
+        // url ผ่าน esc แล้ว ปลอดภัยเมื่อใช้ในแอตทริบิวต์
         html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, function(_, alt, src) {
             var safe = safeMdImgUrl(src);
-            if (!safe) return alt;  // 不合法的图片协议 → 退化为纯文本(alt 已 esc)
-            // 2026-05-23:图片显示尺寸约束(防超大图破坏布局)— max-height 400px,保持宽高比
+            if (!safe) return alt;  // โปรโตคอลรูปภาพไม่ถูกต้อง → ลดรูปลงเป็นข้อความธรรมดา
+            // ปรับขนาดรูปภาพสูงสุด max-height 400px รักษาสัดส่วน
             return '<img alt="' + alt + '" src="' + safe + '"' +
                    ' style="max-width:100%;max-height:400px;object-fit:contain;display:block;margin:8px auto;border-radius:4px;"' +
                    ' loading="lazy"' +
-                   ' onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{textContent:\'🖼 图片加载失败: \'+this.src,style:\'color:#999;font-size:12px;display:inline-block;padding:4px 8px;background:#f5f5f5;border-radius:4px;\'}))">';
+                   ' onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{textContent:\'🖼 โหลดรูปภาพไม่สำเร็จ: \'+this.src,style:\'color:#999;font-size:12px;display:inline-block;padding:4px 8px;background:#f5f5f5;border-radius:4px;\'}))">';
         });
         html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function(_, text, url) {
             var safe = safeMdUrl(url);
@@ -378,11 +378,11 @@
         return html;
     }
 
-    /* ───────────────────────── 本地持久化 ─────────────────────────
-     * ★ 新逻辑:
-     *   - saveOverride(key, comment): 总是写入(空字符串也保留),
-     *     代表"本地已改(或已删除)、尚未同步到文件"。
-     *   - removeOverride(key): 仅在"同步服务器成功"后调用,彻底删掉记录。
+    /* ───────────────────────── บันทึกถาวรในเครื่อง ─────────────────────────
+     * ★ ตรรกะใหม่:
+     *   - saveOverride(key, comment): บันทึกเสมอ (แม้เป็นสตริงว่าง)
+     *     แสดงถึง "แก้ไขหรือลบในเครื่องแล้ว รอซิงค์ลงไฟล์"
+     *   - removeOverride(key): เรียกใช้เฉพาะเมื่อซิงค์สำเร็จเพื่อล้างเรคคอร์ด
      * ─────────────────────────────────────────────────────────── */
     function readOverrides() {
         try { return JSON.parse(localStorage.getItem(LS_NOTES) || '{}'); }
@@ -392,10 +392,10 @@
         if (!key) return;
         try {
             var m = readOverrides();
-            // ★ 即使 comment 为空字符串也必须写入:
-            //    空串 = "本地已删除 comment,待同步到 data.js / KV"。
-            //    旧代码 `if (comment) ... else delete` 会吃掉"删除"这个动作,
-            //    导致 config.html 的 banner 和 note-modal 的 pending 提示消失。
+            // บันทึกเสมอแม้ comment ว่าง
+            //    สตริงว่าง = "ลบ comment ในเครื่องแล้ว รอซิงค์ลง data.js / KV"
+            //    โค้ดเดิมจะตัดการลบออก
+            //    ทำให้การแจ้งเตือน pending หายไป
             m[key] = comment || '';
             localStorage.setItem(LS_NOTES, JSON.stringify(m));
         } catch (e) {}
@@ -412,7 +412,7 @@
         try { localStorage.removeItem(LS_NOTES); } catch (e) {}
     }
 
-    /* ★ 判断某张卡是否存在未同步到文件的本地修改 */
+    /* ★ ตรวจสอบว่ามีการแก้ไขในเครื่องที่ยังไม่ได้ซิงค์หรือไม่ */
     function getEntryKey(entry) {
         if (!entry) return '';
         return (entry.card && entry.card.id) || (entry.meta && entry.meta.uniqueKey) || '';
@@ -422,10 +422,10 @@
         if (!key) return null;
         var ov = readOverrides();
         if (!Object.prototype.hasOwnProperty.call(ov, key)) return null;
-        return { key: key, value: ov[key] };  // value 为空字符串代表"删除待同步"
+        return { key: key, value: ov[key] };  // สตริงว่างแทนการลบที่รอซิงค์
     }
 
-    /* ───────────────────────── 内部工具 ───────────────────────── */
+    /* ───────────────────────── เครื่องมือภายใน ───────────────────────── */
     function getEntry(cardId) {
         var api = window.__favPageAPI;
         return (api && typeof api.getCardById === 'function') ? api.getCardById(cardId) : null;
@@ -437,7 +437,7 @@
     function gotoUrl(card) {
         var rawUrl = card.url || card.descUrl || card.mailto || '';
         if (!rawUrl) return;
-        // 协议白名单：拒绝 javascript: 等危险协议
+        // ไวต์ลิสต์โปรโตคอล: ปฏิเสธ javascript: ฯลฯ
         var s = String(rawUrl).trim();
         var url = /^(?:https?:|mailto:|tel:|\/|#|\?)/i.test(s) ? s : '';
         if (!url) return;
@@ -445,17 +445,17 @@
         else              window.open(url, '_blank', 'noopener,noreferrer');
     }
 
-    /* ★ 统一的"待同步"提示 HTML */
+    /* ★ HTML ข้อความแจ้งเตือน "รอซิงค์" */
     function buildPendingHTML(pending) {
         var isDelete = !pending.value;
-        var link = ' · <a href="' + CONFIG_HREF + '" target="_blank" rel="noopener noreferrer" class="note-config-link">打开 Config 页面 →</a>';
+        var link = ' · <a href="' + CONFIG_HREF + '" target="_blank" rel="noopener noreferrer" class="note-config-link">เปิดหน้า Settings →</a>';
         return (isDelete
-            ? '✅ 已在本浏览器删除,请到 Config 页面保存到文件'
-            : '✅ 已保存到本浏览器,请到 Config 页面保存到文件') + link;
+            ? '✅ ลบในเบราว์เซอร์นี้แล้ว โปรดไปที่หน้า Settings เพื่อบันทึกลงไฟล์'
+            : '✅ บันทึกลงในเบราว์เซอร์นี้แล้ว โปรดไปที่หน้า Settings เพื่อบันทึกลงไฟล์') + link;
     }
 
     /* ════════════════════════════════════════════════════════════
-     * Markdown 工具栏辅助函数
+     * ฟังก์ชันตัวช่วยแถบเครื่องมือ Markdown
      * ════════════════════════════════════════════════════════════ */
     function tbWrap(ta, left, right, placeholder) {
         var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
@@ -484,7 +484,7 @@
     }
     function tbCodeBlock(ta) {
         var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
-        var sel = v.substring(s, e) || '代码';
+        var sel = v.substring(s, e) || 'โค้ด';
         var needNlBefore = s > 0 && v.charAt(s - 1) !== '\n';
         var needNlAfter  = v.charAt(e) !== '\n';
         var insert = (needNlBefore ? '\n' : '') + '```\n' + sel + '\n```' + (needNlAfter ? '\n' : '');
@@ -496,7 +496,7 @@
     function tbLink(ta) {
         var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
         var sel = v.substring(s, e);
-        var text = sel || '链接文字';
+        var text = sel || 'ข้อความลิงก์';
         var url  = 'https://';
         var insert = '[' + text + '](' + url + ')';
         ta.value = v.substring(0, s) + insert + v.substring(e);
@@ -507,7 +507,7 @@
     function tbImage(ta) {
         var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
         var sel = v.substring(s, e);
-        var alt = sel || '图片说明';
+        var alt = sel || 'คำอธิบายรูปภาพ';
         var url = 'https://';
         var insert = '![' + alt + '](' + url + ')';
         ta.value = v.substring(0, s) + insert + v.substring(e);
@@ -528,33 +528,33 @@
     function buildToolbar(ta) {
         var groups = [
             [
-                { label: 'H1', title: '一级标题', run: function(){ tbLinePrefix(ta, '# '); } },
-                { label: 'H2', title: '二级标题', run: function(){ tbLinePrefix(ta, '## '); } },
-                { label: 'H3', title: '三级标题', run: function(){ tbLinePrefix(ta, '### '); } }
+                { label: 'H1', title: 'หัวข้อระดับ 1', run: function(){ tbLinePrefix(ta, '# '); } },
+                { label: 'H2', title: 'หัวข้อระดับ 2', run: function(){ tbLinePrefix(ta, '## '); } },
+                { label: 'H3', title: 'หัวข้อระดับ 3', run: function(){ tbLinePrefix(ta, '### '); } }
             ],
             [
-                { label: 'B', title: '粗体 (Ctrl+B)', cls: 'tb-bold',
-                  run: function(){ tbWrap(ta, '**', '**', '加粗文字'); } },
-                { label: 'I', title: '斜体 (Ctrl+I)', cls: 'tb-italic',
-                  run: function(){ tbWrap(ta, '*', '*', '斜体文字'); } },
-                { label: 'S', title: '删除线', cls: 'tb-strike',
-                  run: function(){ tbWrap(ta, '~~', '~~', '删除'); } }
+                { label: 'B', title: 'ตัวหนา (Ctrl+B)', cls: 'tb-bold',
+                  run: function(){ tbWrap(ta, '**', '**', 'ข้อความตัวหนา'); } },
+                { label: 'I', title: 'ตัวเอียง (Ctrl+I)', cls: 'tb-italic',
+                  run: function(){ tbWrap(ta, '*', '*', 'ข้อความตัวเอียง'); } },
+                { label: 'S', title: 'ขีดฆ่า', cls: 'tb-strike',
+                  run: function(){ tbWrap(ta, '~~', '~~', 'ข้อความขีดฆ่า'); } }
             ],
             [
-                { label: '❝', title: '引用',     run: function(){ tbLinePrefix(ta, '> '); } },
-                { label: '•', title: '无序列表', run: function(){ tbLinePrefix(ta, '- '); } },
-                { label: '1.', title: '有序列表', run: function(){ tbLinePrefix(ta, '1. '); } }
+                { label: '❝', title: 'อ้างอิง',     run: function(){ tbLinePrefix(ta, '> '); } },
+                { label: '•', title: 'รายการแบบไม่มีลำดับ', run: function(){ tbLinePrefix(ta, '- '); } },
+                { label: '1.', title: 'รายการแบบมีลำดับ', run: function(){ tbLinePrefix(ta, '1. '); } }
             ],
             [
-                { label: '</>', title: '行内代码', cls: 'tb-code',
+                { label: '</>', title: 'โค้ดในบรรทัด', cls: 'tb-code',
                   run: function(){ tbWrap(ta, '`', '`', 'code'); } },
-                { label: '{ }', title: '代码块',   cls: 'tb-code',
+                { label: '{ }', title: 'บล็อกโค้ด',   cls: 'tb-code',
                   run: function(){ tbCodeBlock(ta); } }
             ],
             [
-                { label: '🔗', title: '链接 (Ctrl+K)', run: function(){ tbLink(ta); } },
-                { label: '🖼', title: '图片',         run: function(){ tbImage(ta); } },
-                { label: '—', title: '分隔线',       run: function(){ tbHr(ta); } }
+                { label: '🔗', title: 'ลิงก์ (Ctrl+K)', run: function(){ tbLink(ta); } },
+                { label: '🖼', title: 'รูปภาพ',         run: function(){ tbImage(ta); } },
+                { label: '—', title: 'เส้นคั่น',       run: function(){ tbHr(ta); } }
             ]
         ];
 
@@ -583,11 +583,11 @@
         return tb;
     }
 
-    /* ───────────────────────── 构建模态框 ───────────────────────── */
+    /* ───────────────────────── สร้าง Modal ───────────────────────── */
     function buildModal(entry, opts) {
         var card  = entry.card;
         var url   = card.url || card.descUrl || card.mailto || '';
-        var title = card.title || card.content || card.desc || '(无标题)';
+        var title = card.title || card.content || card.desc || '(ไม่มีชื่อ)';
 
         var mask = document.createElement('div');
         mask.className = 'note-mask';
@@ -610,7 +610,7 @@
             '<div class="note-header">' +
                 iconHtml +
                 '<h3 class="note-title" title="' + esc(title) + '">' + esc(title) + '</h3>' +
-                '<button class="note-close" aria-label="关闭">✕</button>' +
+                '<button class="note-close" aria-label="ปิด">✕</button>' +
             '</div>' +
             '<div class="note-body" id="noteBody"></div>' +
             '<div class="note-footer" id="noteFooter"></div>';
@@ -632,12 +632,12 @@
             var pending = getPendingRecord(entry);
 
             if (startEditing) {
-                /* ═══════════ 编辑模式 ═══════════ */
-                body.__rippleDisabled = true;  // 编辑模式禁用 body 波纹
+                /* ═══════════ โหมดแก้ไข ═══════════ */
+                body.__rippleDisabled = true;  // โหมดแก้ไขปิดระลอกคลื่นบน body
 
                 var ta = document.createElement('textarea');
                 ta.className   = 'note-editor';
-                ta.placeholder = '支持 Markdown:# 标题 | **粗** *斜* | `code` | ```代码块``` | [文字](url) | - 列表 | > 引用 | --- 分隔线\n\n(清空内容并保存即为删除注释)';
+                ta.placeholder = 'รองรับ Markdown: # หัวข้อ | **หนา** *เอียง* | `code` | ```บล็อกโค้ด``` | [ข้อความ](url) | - รายการ | > อ้างอิง | --- เส้นคั่น\n\n(ล้างเนื้อหาและบันทึกจะเป็นการลบหมายเหตุ)';
                 ta.value       = comment;
 
                 var toolbar = buildToolbar(ta);
@@ -651,7 +651,7 @@
 
                 var status = document.createElement('div');
                 status.className = 'note-status';
-                // ★ 若已有未同步到文件的本地改动,编辑器一进来就显示这条提示
+                // หากมีการแก้ไขที่ยังไม่ได้ซิงค์ แสดงข้อความแจ้งเตือนทันที
                 if (pending) {
                     status.className = 'note-status pending';
                     status.innerHTML = buildPendingHTML(pending);
@@ -660,7 +660,7 @@
 
                 var backBtn = document.createElement('button');
                 backBtn.className   = 'note-btn note-btn-secondary';
-                backBtn.textContent = '返回';
+                backBtn.textContent = 'ย้อนกลับ';
                 backBtn.onclick = function() {
                     if (comment) { startEditing = false; render(); }
                     else          { mask.remove(); }
@@ -669,13 +669,13 @@
 
                 var saveBtn = document.createElement('button');
                 saveBtn.className   = 'note-btn note-btn-primary';
-                saveBtn.textContent = '保存';
+                saveBtn.textContent = 'บันทึก';
                 footer.appendChild(saveBtn);
 
                 saveBtn.onclick = function() {
                     var val = ta.value.trim();
                     if (!val && comment) {
-                        if (!confirm('注释内容为空,保存将删除该注释。是否继续?')) return;
+                        if (!confirm('เนื้อหาหมายเหตุว่างเปล่า การบันทึกจะเป็นการลบหมายเหตุนี้ ต้องการดำเนินการต่อหรือไม่?')) return;
                     }
                     doSave(ta.value, status, saveBtn, ta);
                 };
@@ -685,15 +685,15 @@
                     if (mod && e.key === 'Enter') { e.preventDefault(); saveBtn.click(); return; }
                     if (!mod || e.shiftKey || e.altKey) return;
                     var k = e.key.toLowerCase();
-                    if (k === 'b') { e.preventDefault(); tbWrap(ta, '**', '**', '加粗文字'); }
-                    else if (k === 'i') { e.preventDefault(); tbWrap(ta, '*', '*', '斜体文字'); }
+                    if (k === 'b') { e.preventDefault(); tbWrap(ta, '**', '**', 'ข้อความตัวหนา'); }
+                    else if (k === 'i') { e.preventDefault(); tbWrap(ta, '*', '*', 'ข้อความตัวเอียง'); }
                     else if (k === 'k') { e.preventDefault(); tbLink(ta); }
                 });
 
             } else {
-                /* ═══════════ 查看模式 ═══════════ */
+                /* ═══════════ โหมดดู ═══════════ */
                 body.__rippleDisabled = false;
-                // ★ 全页面波纹:绑定在 body 上,ripple 元素 append 到 mask
+                // ระลอกคลื่นเต็มหน้า: ผูกกับ body
                 attachFullPageRipple(body, mask);
 
                 if (comment) {
@@ -702,18 +702,18 @@
                     md.innerHTML = renderMarkdown(comment);
                     body.appendChild(md);
 
-                    // ★ <a> 没有自身 title 时会继承 body 的"点击跳转:卡片URL"提示,
-                    //   而点击 <a> 实际打开的是它自己的 href(下方 onclick 对 <a> 放行)。
-                    //   故给备注内每个链接设自身地址提示;白名单拒绝的 '#' 置空 title 阻断继承。
+                    // เมื่อ <a> ไม่มี title ของตนเอง
+                    // จะใช้ href ของตนเอง
+                    // กำหนดข้อความแจ้งเตือนให้กับแต่ละลิงก์ในหมายเหตุ
                     md.querySelectorAll('a[href]').forEach(function(a) {
                         var href = a.getAttribute('href');
-                        a.title = (href && href !== '#') ? ('点击跳转:' + href) : '';
+                        a.title = (href && href !== '#') ? ('คลิกเพื่อเปิด: ' + href) : '';
                     });
 
                     if (url) {
                         body.classList.add('clickable');
-                        // ★ 悬停提示带具体 URL
-                        body.title = '点击跳转:' + url;
+                        // ข้อความ hover พร้อม URL
+                        body.title = 'คลิกเพื่อเปิด: ' + url;
                         body.onclick = function(e) {
                             if (e.target.closest && e.target.closest('a')) return;
                             gotoUrl(card); mask.remove();
@@ -722,12 +722,12 @@
                 } else {
                     var hint = document.createElement('div');
                     hint.className  = 'note-empty-hint';
-                    hint.textContent = editable ? '(该卡片尚无注释,点击"添加注释"创建)'
-                                                : '(该卡片尚无注释)';
+                    hint.textContent = editable ? '(การ์ดนี้ยังไม่มีหมายเหตุ คลิก "เพิ่มหมายเหตุ" เพื่อสร้าง)'
+                                                : '(การ์ดนี้ยังไม่มีหมายเหตุ)';
                     body.appendChild(hint);
                 }
 
-                // ★ footer:先放 pending 状态(若有),再放按钮
+                // footer: วางสถานะ pending (ถ้ามี) แล้วตามด้วยปุ่ม
                 if (pending) {
                     var pStat = document.createElement('div');
                     pStat.className = 'note-status pending';
@@ -738,30 +738,30 @@
                 if (editable) {
                     var editBtn = document.createElement('button');
                     editBtn.className   = 'note-btn note-btn-primary';
-                    editBtn.textContent = comment ? '编辑' : '添加注释';
+                    editBtn.textContent = comment ? 'แก้ไข' : 'เพิ่มหมายเหตุ';
                     editBtn.onclick = function() { startEditing = true; render(); };
                     footer.appendChild(editBtn);
                 } else {
                     var tip = document.createElement('span');
                     tip.className = 'note-readonly-tip';
                     if (entry.meta && entry.meta.encrypted) {
-                        tip.innerHTML = '🔒 加密内容请到 Config 页面修改';
+                        tip.innerHTML = '🔒 เนื้อหาที่เข้ารหัสโปรดไปแก้ไขที่หน้า Settings';
                     } else {
-                        tip.innerHTML = '🔒 只读(解锁后可编辑)';
+                        tip.innerHTML = '🔒 อ่านอย่างเดียว (Unlock เพื่อแก้ไข)';
                     }
                     footer.appendChild(tip);
                 }
             }
 
-            // 所有按钮 attach 局部波纹(__rippleAttached 防重复)
+            // ปุ่มทั้งหมดติดตั้งระลอกคลื่นเฉพาะที่
             box.querySelectorAll('.note-btn, .note-tb-btn').forEach(attachRipple);
         }
 
-        /* ═════════════════════════ 保存逻辑 ═════════════════════════ */
+        /* ═════════════════════════ ตรรกะการบันทึก ═════════════════════════ */
         async function doSave(newComment, statusEl, saveBtn, ta) {
             saveBtn && (saveBtn.disabled = true);
             statusEl.className   = 'note-status';
-            statusEl.textContent = '保存中...';
+            statusEl.textContent = 'กำลังบันทึก...';
 
             var finalComment = (newComment || '').trim();
             var isDelete     = !finalComment;
@@ -769,8 +769,8 @@
             if (!canEdit(entry)) {
                 statusEl.className = 'note-status err';
                 statusEl.textContent = (entry.meta && entry.meta.encrypted)
-                    ? '🔒 加密内容请到 Config 页面修改'
-                    : '❌ 未解锁,无法保存';
+                    ? '🔒 เนื้อหาที่เข้ารหัสโปรดไปแก้ไขที่หน้า Settings'
+                    : '❌ ยังไม่ได้ Unlock ไม่สามารถบันทึกได้';
                 saveBtn && (saveBtn.disabled = false);
                 return;
             }
@@ -789,7 +789,7 @@
                     var online = await detectOnlineMode();
                     if (online) {
                         var path = metaToJsonPath(entry.meta || {});
-                        if (!path) throw new Error('无法构造定位路径');
+                        if (!path) throw new Error('ไม่สามารถสร้างเส้นทางระบุตำแหน่งได้');
                         var resp = await fetch('/api/comment', {
                             method:      'POST',
                             credentials: 'same-origin',
@@ -797,7 +797,7 @@
                             body:        JSON.stringify({ path: path, comment: finalComment })
                         });
                         if (resp.status === 401 || resp.status === 403) {
-                            throw new Error('未登录(请先到 Config 页面登录)');
+                            throw new Error('ยังไม่ได้เข้าสู่ระบบ (โปรดเข้าสู่ระบบที่หน้า Settings ก่อน)');
                         }
                         if (!resp.ok) {
                             var t = await resp.text().catch(function() { return ''; });
@@ -805,20 +805,20 @@
                         }
                         var json = await resp.json().catch(function() { return {}; });
                         if (json && json.ok === false) {
-                            throw new Error(json.error || '服务器保存失败');
+                            throw new Error(json.error || 'เซิร์ฟเวอร์บันทึกไม่สำเร็จ');
                         }
                         savedToServer = true;
                     }
                 }
 
-                // 更新内存中的 card
+                // อัปเดต card ในหน่วยความจำ
                 if (finalComment) card.comment = finalComment;
                 else              delete card.comment;
 
-                // localStorage overrides 同步
-                // ★ 关键修复:
-                //   - 已同步到服务器 → removeOverride 彻底删除记录
-                //   - 仅本地保存    → saveOverride(空串也要保留),pending 常驻
+                // ซิงค์ overrides ใน localStorage
+                // การแก้ไขสำคัญ:
+                //   - ซิงค์กับเซิร์ฟเวอร์แล้ว → removeOverride ลบเรคคอร์ด
+                //   - บันทึกเฉพาะในเครื่อง → saveOverride คงสถานะ pending
                 var key = getEntryKey(entry);
                 if (savedToServer) {
                     removeOverride(key);
@@ -829,30 +829,30 @@
                 comment = finalComment;
                 updateCardHasNoteBadge(entry);
 
-                /* 状态提示 */
+                /* ข้อความสถานะ */
                 statusEl.className = 'note-status ok';
-                var link = ' · <a href="' + CONFIG_HREF + '" target="_blank" rel="noopener" class="note-config-link">打开 Config 页面 →</a>';
+                var link = ' · <a href="' + CONFIG_HREF + '" target="_blank" rel="noopener" class="note-config-link">เปิดหน้า Settings →</a>';
                 if (savedToServer) {
-                    statusEl.innerHTML = (isDelete ? '✅ 已删除并同步到服务器' : '✅ 已保存并同步到服务器') + link;
+                    statusEl.innerHTML = (isDelete ? '✅ ลบและซิงค์กับเซิร์ฟเวอร์สำเร็จ' : '✅ บันทึกและซิงค์กับเซิร์ฟเวอร์สำเร็จ') + link;
                 } else {
                     statusEl.className = 'note-status pending';
                     statusEl.innerHTML = (isDelete
-                        ? '✅ 已在本浏览器删除,请到 Config 页面保存到文件'
-                        : '✅ 已保存到本浏览器,请到 Config 页面保存到文件') + link;
+                        ? '✅ ลบในเบราว์เซอร์นี้แล้ว โปรดไปที่หน้า Settings เพื่อบันทึกลงไฟล์'
+                        : '✅ บันทึกลงในเบราว์เซอร์นี้แล้ว โปรดไปที่หน้า Settings เพื่อบันทึกลงไฟล์') + link;
                 }
 
                 if (saveBtn) saveBtn.disabled = false;
 
             } catch (err) {
                 statusEl.className   = 'note-status err';
-                statusEl.textContent = '❌ 保存失败:' + ((err && err.message) || err);
+                statusEl.textContent = '❌ บันทึกไม่สำเร็จ: ' + ((err && err.message) || err);
                 saveBtn && (saveBtn.disabled = false);
             }
         }
 
         box.querySelector('.note-close').onclick = function() { mask.remove(); };
-        // ★ 只有"按下时在 mask 上 + 松开时也在 mask 上"才关闭
-        // 防止从卡片内按下、拖到外面松开而意外关闭
+        // ปิดเฉพาะเมื่อกดและปล่อยบน mask เท่านั้น
+        // ป้องกันการปิดโดยไม่ตั้งใจ
         var _maskDownOnSelf = false;
         mask.addEventListener('mousedown', function(e) {
             _maskDownOnSelf = (e.target === mask);
@@ -874,10 +874,10 @@
         render();
     }
 
-    /* ───────────────────────── 红点 DOM 同步辅助 ─────────────────────────
-     * 把"添加 .has-note 类 + append <span class='note-dot'>"封装在一起，
-     * 让红点改用真实 DOM 元素而非 ::after，避免与页面自有伪元素冲突
-     * （如 index5 的 .link-card::after hover 绿线）。
+    /* ───────────────────────── ตัวช่วยซิงค์จุดแดงบน DOM ─────────────────────────
+     * รวมการเพิ่มคลาส .has-note และ <span class='note-dot'> เข้าด้วยกัน
+     * ใช้ DOM element จริงแทน ::after ป้องกันการชนกัน
+     * (เช่น เส้นสีเขียวใน index5)
      * ─────────────────────────────────────────────────────────── */
     function setHasNote(el, hasNote) {
         if (!el || !el.classList) return;
@@ -903,7 +903,7 @@
         }
     }
 
-    /* ───────────────────────── 更新卡片红点 ───────────────────────── */
+    /* ───────────────────────── อัปเดตจุดแดงของการ์ด ───────────────────────── */
     function updateCardHasNoteBadge(entry) {
         var nodes = document.querySelectorAll('[data-card-id]');
         nodes.forEach(function(el) {
@@ -942,7 +942,7 @@
                 if (!seen || !seen.has(entry.card)) {
                     if (Object.prototype.hasOwnProperty.call(overrides, key)) {
                         var v = overrides[key];
-                        // ★ v 为空串代表"本地已删除,待同步" → 从 card 上移除 comment
+                        // สตริงว่างแทนการลบในเครื่องรอซิงค์ → ลบ comment ออกจากการ์ด
                         if (v) entry.card.comment = v;
                         else   delete entry.card.comment;
                     }
@@ -964,7 +964,7 @@
     }
 
     /* ════════════════════════════════════════════════════════════
-     * 启动时:等 fav-page.js 渲染完 → 自动 applyOverrides
+     * เมื่อเริ่มต้น: รอ fav-page.js เรนเดอร์เสร็จ → เรียกใช้ applyOverrides อัตโนมัติ
      * ════════════════════════════════════════════════════════════ */
     var applyDebounceTimer = null;
     function scheduleApply() {
@@ -1005,7 +1005,7 @@
         bootApplyObserver();
     }
 
-    /* ───────────────────────── 对外入口 ───────────────────────── */
+    /* ───────────────────────── ช่องทางภายนอก ───────────────────────── */
     function show(cardId) {
         var entry = getEntry(cardId);
         if (!entry) return;
@@ -1027,11 +1027,11 @@
         renderMarkdown: renderMarkdown,
         applyOverrides: applyOverrides,
         getOverrides:   readOverrides,
-        clearOverrides: clearAllOverrides   // ★ 供 config.html 保存后清除
+        clearOverrides: clearAllOverrides   // สำหรับล้างค่าหลัง Settings บันทึก
     };
 
     /* ════════════════════════════════════════════════════════════
-     * 右键 / 长按 → 打开编辑器(仅已解锁 + 非加密卡片)
+     * คลิกขวา / กดค้าง → เปิดตัวแก้ไข (เฉพาะที่ Unlock แล้วและไม่ใช่การ์ดเข้ารหัส)
      * ════════════════════════════════════════════════════════════ */
     function findCardId(target) {
         if (!target || !target.closest) return null;

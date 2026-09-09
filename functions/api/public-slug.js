@@ -1,23 +1,14 @@
-// /api/public-slug  — 公开访问 slug 的管理端点(A1.5)
+// /api/public-slug  — จุดจัดการสำหรับ slug การเข้าถึงสาธารณะ (A1.5)
 //
 // GET    /api/public-slug?u=alice
-//        → 查询某用户的 slug + enabled 状态;admin 可查任何人,user 只能查自己
+//        → ตรวจสอบสถานะ slug + enabled ของผู้ใช้; admin ตรวจสอบได้ทุกคน, user ตรวจสอบได้เฉพาะของตนเอง
 //
 // POST   /api/public-slug
 //        body: { username, slug, enabled }
-//        → 设置 / 修改 slug;admin 可改任何人,user 只能改自己
-//        - enabled=true 时 slug 必须合法且未被占用,会写入反向索引
-//        - enabled=false 时 slug 可保留(供再次开启),但反向索引被释放
-//        - slug 改名时:先写新索引 → 再删旧索引(确保两边不同时缺失)
+//        → ตั้งค่า / แก้ไข slug; admin แก้ไขได้ทุกคน, user แก้ไขได้เฉพาะของตนเอง
 //
 // DELETE /api/public-slug?u=alice
-//        → 关闭公开访问 + 释放 slug;admin 可删任何人,user 只能删自己
-//
-// 权限模型(getRole + payload.uid):
-//   admin              → 可操作任何用户
-//   user (uid==target) → 可操作自己
-//   user (uid!=target) → 403
-//   未登录             → 401
+//        → ปิดการเข้าถึงสาธารณะ + ปลดปล่อย slug
 
 import {
     jsonResponse,
@@ -41,31 +32,31 @@ import {
 
 const USERS_KEY = 'users';
 
-// 鉴权 + 权限判定:返回 { payload, target, isAdmin } 或 Response(出错时)
+// การตรวจสอบสิทธิ์และระบุผู้ใช้เป้าหมาย: คืนค่า { payload, target, isAdmin } หรือ Response (เมื่อผิดพลาด)
 async function authorizeAndResolveTarget(request, env, targetUsername) {
     const secret = getSecret(env);
     if (!secret) {
-        return jsonResponse({ ok: false, error: '服务端未配置 AUTH_SECRET,请联系管理员' }, 500);
+        return jsonResponse({ ok: false, error: 'เซิร์ฟเวอร์ไม่ได้กำหนดค่า AUTH_SECRET โปรดติดต่อผู้ดูแลระบบ' }, 500);
     }
     const token = getCookieToken(request);
     const payload = await verifyToken(token, secret);
     if (!payload) {
-        return jsonResponse({ ok: false, error: '未登录或会话已过期' }, 401);
+        return jsonResponse({ ok: false, error: 'ยังไม่ได้เข้าสู่ระบบหรือเซสชันหมดอายุ' }, 401);
     }
     const role = payload.role
         || (env && env.ADMIN_USER && payload.u === env.ADMIN_USER ? 'admin' : 'user');
     const myUid = payload.uid != null ? payload.uid : payload.u;
     if (!isValidUsername(targetUsername)) {
-        return jsonResponse({ ok: false, error: '无效的用户名格式' }, 400);
+        return jsonResponse({ ok: false, error: 'รูปแบบชื่อผู้ใช้ไม่ถูกต้อง' }, 400);
     }
     const isAdmin = role === 'admin';
     if (!isAdmin && myUid !== targetUsername) {
-        return jsonResponse({ ok: false, error: '仅管理员可操作他人的公开链接' }, 403);
+        return jsonResponse({ ok: false, error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการลิงก์สาธารณะของผู้อื่นได้' }, 403);
     }
     return { payload, target: targetUsername, isAdmin, myUid };
 }
 
-// 从 KV 读 users 表,返回 [users, user]。user 不存在时返回 [users, null]。
+// อ่านตาราง users จาก KV, คืนค่า [users, user]
 async function readUserEntry(env, target) {
     const raw = await env.FAV_KV.get(USERS_KEY);
     const users = raw ? JSON.parse(raw) : {};
@@ -73,16 +64,16 @@ async function readUserEntry(env, target) {
 }
 
 export async function onRequestGet({ request, env }) {
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
     const url = new URL(request.url);
     const target = url.searchParams.get('u');
-    if (!target) return jsonResponse({ ok: false, error: '缺少参数 u' }, 400);
+    if (!target) return jsonResponse({ ok: false, error: 'ไม่มีพารามิเตอร์ u' }, 400);
 
     const auth = await authorizeAndResolveTarget(request, env, target);
     if (auth instanceof Response) return auth;
 
     const [, user] = await readUserEntry(env, target);
-    if (!user) return jsonResponse({ ok: false, error: '用户不存在' }, 404);
+    if (!user) return jsonResponse({ ok: false, error: 'ไม่พบผู้ใช้' }, 404);
 
     return jsonResponse({
         ok: true,
@@ -93,11 +84,11 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     let body;
     try { body = await request.json(); }
-    catch { return jsonResponse({ ok: false, error: '请求格式错误' }, 400); }
+    catch { return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง' }, 400); }
 
     const target = body && body.username;
     const newSlugRaw = body && body.slug;
@@ -106,41 +97,38 @@ export async function onRequestPost({ request, env }) {
 
     const auth = await authorizeAndResolveTarget(request, env, target);
     if (auth instanceof Response) return auth;
-    // 调用者角色决定 slug 长度规则:admin 宽松(1-32)/ user 严格(3-32)
+    // สิทธิ์ของผู้เรียกกำหนดกฎความยาว slug: admin (1-32) / user (3-32)
     const callerRole = auth.isAdmin ? 'admin' : 'user';
     const minLen = auth.isAdmin ? 1 : 3;
 
-    // slug 格式 / 保留词校验(enabled=true 时强制;enabled=false 时 slug 可空)
+    // ตรวจสอบรูปแบบ slug / คำสงวน
     if (enabled) {
         if (!isValidSlug(newSlug, callerRole)) {
             return jsonResponse({
                 ok: false,
-                error: 'slug 不合法:首字符必须字母/数字,允许 a-z 0-9 _ -,长度 ' + minLen + '-32'
+                error: 'slug ไม่ถูกต้อง: ตัวอักษรแรกต้องเป็นตัวอักษร/ตัวเลข, อนุญาต a-z 0-9 _ -, ความยาว ' + minLen + '-32'
             }, 400);
         }
         if (isReservedSlug(newSlug)) {
             return jsonResponse({
                 ok: false,
-                error: '该 slug 是保留词,请换一个'
+                error: 'slug นี้เป็นคำสงวน โปรดเลือกคำอื่น'
             }, 400);
         }
     } else if (newSlug && !isValidSlug(newSlug, callerRole)) {
-        // 禁用但又给了一个不合法的 slug → 拒绝(避免脏数据写入)
         return jsonResponse({
             ok: false,
-            error: 'slug 不合法(即使禁用也需通过格式校验或清空)'
+            error: 'slug ไม่ถูกต้อง (แม้ว่าจะปิดใช้งานก็ต้องผ่านการตรวจสอบรูปแบบหรือเว้นว่างไว้)'
         }, 400);
     }
 
-    // 普通用户改名约束(2026-05-23):slug 必须包含 username 70%+ 连续字符
-    // 触发:!isAdmin && newSlug 非空(enabled=false 也校验,避免先存禁用、后启用绕过)
-    // admin 不受此约束;系统自动生成(genUniqueSlug)走 users.js,不经此路径
+    // ข้อกำหนดการเปลี่ยนชื่อของผู้ใช้ทั่วไป: slug ต้องมีอักขระจากชื่อผู้ใช้อย่างน้อย 70%
     if (!auth.isAdmin && newSlug) {
         if (!slugContainsUsernameSubstring(newSlug, target, 0.7)) {
             const reqLen = requiredUsernameSubstringLen(target, 0.7);
             return jsonResponse({
                 ok: false,
-                error: 'slug 必须包含用户名 "' + target + '" 中连续的 ' + reqLen + ' 个字符(且不能是纯数字片段)',
+                error: 'slug ต้องมีอักขระติดต่อกันอย่างน้อย ' + reqLen + ' ตัวจากชื่อผู้ใช้ "' + target + '" (และต้องไม่ใช่ตัวเลขล้วน)',
                 code: 'USERNAME_SUBSTRING_REQUIRED',
                 requiredLen: reqLen
             }, 400);
@@ -148,29 +136,29 @@ export async function onRequestPost({ request, env }) {
     }
 
     const [users, user] = await readUserEntry(env, target);
-    if (!user) return jsonResponse({ ok: false, error: '用户不存在' }, 404);
+    if (!user) return jsonResponse({ ok: false, error: 'ไม่พบผู้ใช้' }, 404);
 
     const oldSlug = user.publicSlug || '';
 
-    // 唯一性检查:新 slug 已存在且不属于 target → 冲突
+    // ตรวจสอบความซ้ำซ้อน: หาก slug ใหม่มีผู้อื่นใช้อยู่แล้ว
     if (enabled && newSlug && newSlug !== oldSlug) {
         const occupantUid = await lookupSlugUid(env, newSlug);
         if (occupantUid && occupantUid !== target) {
             return jsonResponse({
                 ok: false,
-                error: '该 slug 已被占用',
+                error: 'slug นี้ถูกใช้งานแล้ว',
                 conflict: true
             }, 409);
         }
     }
 
     try {
-        // 先写反向索引(enabled=true 才写)
+        // บันทึกดัชนีย้อนกลับ (reverse index) เมื่อ enabled=true
         if (enabled && newSlug) {
             await writeSlugIndex(env, newSlug, target);
         }
 
-        // 再写 users 表
+        // เขียนลงตาราง users
         users[target] = {
             ...user,
             publicSlug: newSlug || '',
@@ -178,19 +166,15 @@ export async function onRequestPost({ request, env }) {
         };
         await env.FAV_KV.put(USERS_KEY, JSON.stringify(users));
 
-        // 最后释放旧反向索引(只有在 slug 改名 或 enabled=false 时)
+        // ปลดปล่อยดัชนีเดิมเมื่อเปลี่ยน slug หรือ disabled
         if (oldSlug && oldSlug !== newSlug) {
             await deleteSlugIndex(env, oldSlug);
-            // A1.5 增强 D:slug 改名 且新 slug 仍启用 → 写老 slug → 新 slug 重定向(30 天 TTL)
-            // 让旧分享链接 /@oldSlug 仍能找到内容,前端显示改名 banner。
             if (enabled && newSlug) {
                 await writeOldSlugRedirect(env, oldSlug, newSlug);
             }
-            // 若新 slug 恰好等于某个历史老 slug(用户改回去了)→ 清掉那条重定向,避免无限重定向
             await deleteOldSlugRedirect(env, newSlug);
         } else if (!enabled && oldSlug) {
             await deleteSlugIndex(env, oldSlug);
-            // 关闭公开访问时不写 old-redirect — 没有可重定向到的新 slug
         }
 
         return jsonResponse({
@@ -205,23 +189,23 @@ export async function onRequestPost({ request, env }) {
         console.warn('public-slug.POST failed:', msg, e && e.stack);
         return jsonResponse({
             ok: false,
-            error: '写入失败: ' + msg,
+            error: 'การบันทึกล้มเหลว: ' + msg,
             where: 'public-slug.POST'
         }, 500);
     }
 }
 
 export async function onRequestDelete({ request, env }) {
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
     const url = new URL(request.url);
     const target = url.searchParams.get('u');
-    if (!target) return jsonResponse({ ok: false, error: '缺少参数 u' }, 400);
+    if (!target) return jsonResponse({ ok: false, error: 'ไม่มีพารามิเตอร์ u' }, 400);
 
     const auth = await authorizeAndResolveTarget(request, env, target);
     if (auth instanceof Response) return auth;
 
     const [users, user] = await readUserEntry(env, target);
-    if (!user) return jsonResponse({ ok: false, error: '用户不存在' }, 404);
+    if (!user) return jsonResponse({ ok: false, error: 'ไม่พบผู้ใช้' }, 404);
 
     const oldSlug = user.publicSlug || '';
     try {
@@ -243,7 +227,7 @@ export async function onRequestDelete({ request, env }) {
         console.warn('public-slug.DELETE failed:', msg, e && e.stack);
         return jsonResponse({
             ok: false,
-            error: '清除失败: ' + msg,
+            error: 'การล้างข้อมูลล้มเหลว: ' + msg,
             where: 'public-slug.DELETE'
         }, 500);
     }

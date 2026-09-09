@@ -1,25 +1,25 @@
 /* ================================================================================
  * shared/zip-adapter.js
  * ─────────────────────────────────────────────────────────────────────────────
- * ZIP 打包适配器(A1-c2 配套)
+ * ตัวแปลง ZIP (A1-c2)
  *
- * 用途:把若干 (filename, content) 打成 ZIP Blob,供前端下载。
- * 用例:强制删除用户时,把 full.json + cards.csv 打包成单个 .zip 供 admin 下载。
+ * การใช้งาน: รวม (filename, content) เป็น ZIP Blob สำหรับดาวน์โหลด
+ * กรณีใช้งาน: เมื่อลบผู้ใช้ รวม full.json + cards.csv เป็น .zip เดียว
  *
- * 设计:薄壳,只负责
- *   1) 懒加载 JSZip(CDN,~95KB)
+ * การออกแบบ: บางเบา รับผิดชอบเฉพาะ
+ *   1) โหลด JSZip แบบ lazy (CDN, ~95KB)
  *   2) zipFiles([{ name, content }]) → Promise<Blob>
  *
- * 加载方式(与 xlsx-adapter 风格一致):
+ * วิธีโหลด (สไตล์เดียวกับ xlsx-adapter):
  *   <script src="shared/zip-adapter.js"></script>
- *   然后通过 window.ZipAdapter.* 调用。
+ *   แล้วเรียกผ่าน window.ZipAdapter.*
  *
- * 对外 API:
- *   ZipAdapter.isLoaded()                     : JSZip 是否已加载
- *   ZipAdapter.loadJSZip() → Promise          : 懒加载 JSZip(idempotent)
+ * API ภายนอก:
+ *   ZipAdapter.isLoaded()                     : JSZip โหลดแล้วหรือไม่
+ *   ZipAdapter.loadJSZip() → Promise          : โหลด JSZip แบบ lazy (idempotent)
  *   ZipAdapter.zipFiles(files, opts) → Blob   : files = [{ name, content }];async
- *     content 支持 string / Uint8Array / ArrayBuffer / Blob
- *     opts:可选 { compression: 'STORE' | 'DEFLATE' }(默认 DEFLATE,level 6)
+ *     content รองรับ string / Uint8Array / ArrayBuffer / Blob
+ *     opts: ตัวเลือก { compression: 'STORE' | 'DEFLATE' } (ค่าเริ่มต้น DEFLATE, level 6)
  * ================================================================================ */
 
 (function() {

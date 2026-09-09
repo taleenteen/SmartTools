@@ -1,26 +1,26 @@
 /* ================================================================================
  * shared/xlsx-adapter.js
  * ─────────────────────────────────────────────────────────────────────────────
- * XLSX 双轨适配器（B0 配套）
+ * ตัวแปลง XLSX (B0)
  *
- * 用途：复用 CsvSchema 的 schema/校验逻辑，把 sections ↔ XLSX 二进制互转。
- * 设计：薄壳，schema 和 row 校验完全委托给 csv-schema.js，本文件只负责：
- *   1) 懒加载 SheetJS（CDN，340KB）
+ * การใช้งาน: แปลง sections ↔ ไบนารี XLSX โดยใช้ CsvSchema ซ้ำ
+ * การออกแบบ: บางเบา ส่งต่อการตรวจสอบให้ csv-schema.js โดยไฟล์นี้รับผิดชอบเฉพาะ:
+ *   1) โหลด SheetJS แบบ lazy (CDN, 340KB)
  *   2) sectionsToXlsx(sections, opts)：sections → CSV(via CsvSchema) → workbook → Blob
  *   3) xlsxToRows(arrayBuffer)：xlsx → sheet → rows → CsvSchema.validateRows
  *
- * 依赖：必须先加载 shared/csv-schema.js（window.CsvSchema 必须就位）
+ * สิ่งที่ต้องใช้: ต้องโหลด shared/csv-schema.js ก่อน
  *
- * 加载方式（与 csv-schema 风格一致）：
+ * วิธีโหลด (สไตล์เดียวกับ csv-schema):
  *   <script src="shared/csv-schema.js"></script>
  *   <script src="shared/xlsx-adapter.js"></script>
- *   然后通过 window.XlsxAdapter.* 调用。
+ *   แล้วเรียกผ่าน window.XlsxAdapter.*
  *
- * 对外 API：
- *   XlsxAdapter.isLoaded()                    : SheetJS 是否已加载
- *   XlsxAdapter.loadSheetJS() → Promise       : 懒加载 SheetJS（idempotent）
- *   XlsxAdapter.sectionsToXlsx(sections,opts) : 返回 Blob（async）
- *   XlsxAdapter.xlsxToRows(arrayBuffer)       : 返回 { rows,errors,warnings }（async）
+ * API ภายนอก:
+ *   XlsxAdapter.isLoaded()                    : SheetJS โหลดแล้วหรือไม่
+ *   XlsxAdapter.loadSheetJS() → Promise       : โหลด SheetJS แบบ lazy (idempotent)
+ *   XlsxAdapter.sectionsToXlsx(sections,opts) : คืนค่า Blob (async)
+ *   XlsxAdapter.xlsxToRows(arrayBuffer)       : คืนค่า { rows,errors,warnings } (async)
  * ================================================================================ */
 
 (function() {
@@ -56,20 +56,20 @@
 
     /* ════════════════════════════════════════════════════════════════════════════
      * sectionsToXlsx: sections → Blob (xlsx)
-     * 策略：复用 CsvSchema.sectionsToCSV → 解析回 grid → workbook → blob
-     *      这样 schema 的列定义/卡片 → row 的映射只有一份（在 csv-schema 中）。
+     * กลยุทธ์: ใช้ CsvSchema.sectionsToCSV ซ้ำ → แปลงกลับเป็น grid → workbook → blob
+     *      เพื่อให้การจับคู่คอลัมน์/การ์ด → row มีเพียงที่เดียวใน csv-schema
      * ════════════════════════════════════════════════════════════════════════════ */
     function sectionsToXlsx(sections, opts) {
         if (!window.CsvSchema || typeof window.CsvSchema.sectionsToCSV !== 'function') {
             return Promise.reject(new Error('CsvSchema not loaded'));
         }
         return loadSheetJS().then(function(XLSX) {
-            // CSV(含 BOM、CRLF) — SheetJS 完全支持
+            // CSV (รวม BOM, CRLF) — SheetJS รองรับสมบูรณ์
             var csv = window.CsvSchema.sectionsToCSV(sections, opts || {});
-            // 关键：剥除 UTF-8 BOM，否则它会变成 A1 单元格内容的一部分（看起来像前导空格）
+            // สำคัญ: ลบ UTF-8 BOM ออก มิฉะนั้นจะเป็นส่วนหนึ่งของเซลล์ A1
             if (csv.charCodeAt(0) === 0xFEFF) csv = csv.slice(1);
             var wb = XLSX.read(csv, { type: 'string', raw: true });
-            // SheetJS 自动命名 sheet 为 Sheet1；改成更友好的名字
+            // SheetJS ตั้งชื่อเริ่มต้นว่า Sheet1 เปลี่ยนเป็นชื่อที่เหมาะสมกว่า
             var sheetName = 'SmartTools';
             if (wb.SheetNames.length) {
                 wb.Sheets[sheetName] = wb.Sheets[wb.SheetNames[0]];
@@ -85,7 +85,7 @@
 
     /* ════════════════════════════════════════════════════════════════════════════
      * xlsxToRows: ArrayBuffer → { rows, errors, warnings }
-     * 流程：xlsx → workbook → 第一张 sheet → 二维数组(aoa) → rawRows → validateRows
+     * ขั้นตอน: xlsx → workbook → sheet แรก → อาร์เรย์ 2 มิติ (aoa) → rawRows → validateRows
      * ════════════════════════════════════════════════════════════════════════════ */
     function xlsxToRows(arrayBuffer, opts) {
         if (!window.CsvSchema || typeof window.CsvSchema.validateRows !== 'function') {
@@ -100,12 +100,12 @@
                 return { rows: [], errors: [{ line: 0, col: '', msg: 'XLSX has no sheets' }], warnings: [] };
             }
 
-            // 取第一张 sheet（用户可能改了名字，不强制要求叫 SmartTools）
+            // นำ sheet แรกมาใช้ (ผู้ใช้อาจเปลี่ยนชื่อ ไม่บังคับว่าต้องเป็น SmartTools)
             var sheet = wb.Sheets[wb.SheetNames[0]];
-            // 转二维数组：header:1 表示第一行作为字段，但我们手动处理；defval:'' 让空格变空串
+            // แปลงเป็นอาร์เรย์ 2 มิติ: header:1 คือแถวแรกเป็นฟิลด์; defval:'' ให้ช่องว่างเป็นสตริงว่าง
             var aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
 
-            // 去掉末尾完全空的行
+            // ตัดแถวว่างท้ายสุดออก
             while (aoa.length && aoa[aoa.length - 1].every(function(v) { return v === '' || v == null; })) {
                 aoa.pop();
             }
@@ -115,7 +115,7 @@
 
             var headers = aoa[0].map(function(h) { return String(h == null ? '' : h).trim(); });
 
-            // 表头校验
+            // ตรวจสอบส่วนหัว
             var COLUMNS = window.CsvSchema.COLUMNS;
             var missing = [];
             COLUMNS.forEach(function(c) {
@@ -129,7 +129,7 @@
                 };
             }
 
-            // 转成 rawRows
+            // แปลงเป็น rawRows
             var rawRows = [];
             for (var i = 1; i < aoa.length; i++) {
                 var values = aoa[i];
@@ -141,7 +141,7 @@
                     var v = j < values.length ? values[j] : '';
                     obj[h] = (v == null) ? '' : String(v);
                 }
-                obj._line = i + 1; // 1-based，第 1 行是表头
+                obj._line = i + 1; // 1-based, แถวที่ 1 คือส่วนหัว
                 rawRows.push(obj);
             }
 
@@ -150,8 +150,8 @@
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * templateToXlsx: 把 CsvSchema.buildTemplateCSV() 转成 Xlsx Blob
-     * 模板文件，不需要 sections 数据。
+     * templateToXlsx: แปลง CsvSchema.buildTemplateCSV() เป็น Xlsx Blob
+     * ไฟล์แม่แบบ ไม่ต้องใช้ข้อมูล sections
      * ════════════════════════════════════════════════════════════════════════════ */
     function templateToXlsx() {
         if (!window.CsvSchema || typeof window.CsvSchema.buildTemplateCSV !== 'function') {
@@ -159,7 +159,7 @@
         }
         return loadSheetJS().then(function(XLSX) {
             var csv = window.CsvSchema.buildTemplateCSV();
-            if (csv.charCodeAt(0) === 0xFEFF) csv = csv.slice(1); // 同 sectionsToXlsx 剥 BOM
+            if (csv.charCodeAt(0) === 0xFEFF) csv = csv.slice(1); // ลบ BOM เช่นเดียวกับ sectionsToXlsx
             var wb = XLSX.read(csv, { type: 'string', raw: true });
             var sheetName = 'SmartTools-Template';
             if (wb.SheetNames.length) {

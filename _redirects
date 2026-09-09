@@ -6,6 +6,6 @@
 # Do not add `/* /index.html 200` (or any rewrite whose destination is /index.html).
 # Workers static assets reject it at deploy (API 100324): default html_handling
 # 307s /index.html → / (strips `.html` / `/index`), which matches /* again.
-# Vue routes (/ /l /t /tool /c /settings) are served by wrangler.toml:
+# Vue routes (/ /l /manga /notes /c /settings) are served by wrangler.toml:
 #   [assets] not_found_handling = "single-page-application"
-# Real files (config.html, about.html, tools/*.html, data.js) still win as assets.
+# Real files (config.html, about.html, data.js) still win as assets.

@@ -1,7 +1,5 @@
 # SmartTools - An Editable Online Bookmark System
 
-> 🌏 [中文版 README](./README_CN.md)
-
 A personal bookmark system featuring **multiple card styles, visual configuration, and dual-mode deployment**, with a collection of self-made utility tools as one of its sections.
 
 This project started as a few small online tools I wrote for my kids, and gradually evolved into the current **online bookmark system**, with those utilities preserved as one section. Bookmarks, URLs, and frequently-used tools can all be edited directly through a web interface — **no code changes or redeployment required**.

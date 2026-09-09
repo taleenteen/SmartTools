@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { Button } from '@/components/ui/button'
-import ThemeSwitcher from '@/components/bookmarks/ThemeSwitcher.vue'
+import AppNavbar from '@/components/bookmarks/AppNavbar.vue'
 import { t } from '@/i18n/th'
 import { useSessionStore } from '@/stores/session'
 import UnlockDialog from '@/components/bookmarks/UnlockDialog.vue'
@@ -84,21 +84,21 @@ async function connectLocal() {
 </script>
 
 <template>
-  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
-    <header class="mb-8 flex flex-wrap items-center justify-between gap-3">
+  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-2 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
+    <AppNavbar />
+
+    <!-- Page Title & Actions -->
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <p class="text-sm text-muted-foreground">{{ t.appName }}</p>
-        <h1 class="text-2xl font-semibold tracking-tight">{{ t.settings }}</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{{ t.settings }}</h1>
+        <p class="mt-1 text-xs sm:text-sm text-muted-foreground">จัดการระบบ บัญชีผู้ใช้ และการสำรองข้อมูล</p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <Button as-child size="sm" variant="outline" class="rounded-full">
-          <RouterLink to="/">{{ t.backBookmarks }}</RouterLink>
-        </Button>
+      <div class="flex items-center gap-2">
         <Button
           v-if="session.loggedIn"
           size="sm"
-          variant="secondary"
-          class="rounded-full"
+          variant="outline"
+          class="rounded-full shadow-xs text-xs sm:text-sm"
           @click="session.logout()"
         >
           {{ t.logout }}
@@ -107,14 +107,13 @@ async function connectLocal() {
           v-if="session.loggedIn && mode.kind === 'local'"
           size="sm"
           variant="outline"
-          class="rounded-full"
+          class="rounded-full shadow-xs text-xs sm:text-sm"
           @click="connectLocal()"
         >
           {{ t.connectFolder }}
         </Button>
-        <ThemeSwitcher />
       </div>
-    </header>
+    </div>
 
     <p v-if="session.status === 'checking' || session.status === 'idle'" class="text-sm text-muted-foreground">
       {{ t.checkingSession }}

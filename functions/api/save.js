@@ -1,9 +1,9 @@
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
 
-// A0 v2 改造（2026-05-17）：按身份选 namespace
+// เลือก namespace ตามบทบาทผู้ใช้:
 //   admin → admin:data_js / admin:data_source / admin:backup:*
 //   user  → user:<uid>:data_js / user:<uid>:data_source / user:<uid>:backup:*
-//          + 写完后 users[uid].hasData = true（best-effort，失败不阻断保存）
+//          + เมื่อบันทึกสำเร็จจะตั้งค่า users[uid].hasData = true (best-effort)
 
 const MAX_BACKUPS = 100;
 const PRUNE_PROBABILITY = 0.2;
@@ -18,17 +18,16 @@ function nsKeys(ns) {
 }
 
 /**
- * 模块作用域 flag：按 namespace 维护。同一 isolate 内每个 namespace 首次保存时
- * 检查/写入 SOURCE_KEY；之后跳过。新 isolate 启动会重置。
+ * ตัวแปรระดับโมดูลสำหรับจัดการสถานะ source ของแต่ละ namespace
  */
 const _sourceConfirmedKv = new Set();
 
 export async function onRequestPost({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV(FAV_KV)' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ยังไม่ได้ผูก KV (FAV_KV)' }, 500);
 
-    // 选 namespace
+    // เลือก namespace
     const payload = await getPayload(request, env);
     const role = (payload && payload.role) || 'user';
     const uid  = payload && (payload.uid != null ? payload.uid : payload.u);
@@ -38,14 +37,14 @@ export async function onRequestPost({ request, env }) {
 
     let body;
     try { body = await request.json(); }
-    catch { return jsonResponse({ ok: false, error: '请求格式错误' }, 400); }
+    catch { return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง' }, 400); }
 
     const { content } = body || {};
     if (typeof content !== 'string' || !content.trim()) {
-        return jsonResponse({ ok: false, error: '内容为空' }, 400);
+        return jsonResponse({ ok: false, error: 'เนื้อหาว่างเปล่า' }, 400);
     }
 
-    // 读旧版本用于对比
+    // อ่านเวอร์ชันเดิมเพื่อเปรียบเทียบ
     const old = await env.FAV_KV.get(KEYS.data);
     const contentChanged = old !== content;
 
@@ -58,7 +57,7 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 主数据写入 + SOURCE_KEY 自动激活 → 并行
+    // เขียนข้อมูลหลัก + เปิดใช้งาน SOURCE_KEY อัตโนมัติ
     const writes = [];
     if (contentChanged) {
         writes.push(env.FAV_KV.put(KEYS.data, content));
@@ -72,9 +71,7 @@ export async function onRequestPost({ request, env }) {
     }
     if (writes.length) await Promise.all(writes);
 
-    // user 路径：标记 hasData=true（best-effort）
-    //   - 已经是 true 时跳过写,省 KV 操作
-    //   - 失败时不阻断保存（用户感知"保存成功"是首要的）
+    // กรณีผู้ใช้ทั่วไป: ทำเครื่องหมาย hasData=true
     if (isUser && uid) {
         try {
             const raw = await env.FAV_KV.get(USERS_KEY);
@@ -96,9 +93,9 @@ export async function onRequestPost({ request, env }) {
     });
 }
 
-// 北京时间时间戳
+// สร้าง timestamp เวลา
 function timestamp() {
-    const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
     const p = n => String(n).padStart(2, '0');
     return d.getUTCFullYear() +
            p(d.getUTCMonth() + 1) +

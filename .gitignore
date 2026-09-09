@@ -6,28 +6,28 @@ worker-build/
 Thumbs.db
 *.log
 
-# 密钥 / 环境变量(绝对不能上 git)
+# คีย์ลับ / Environment variables (ห้าม commit ขึ้น git เด็ดขาด)
 .env
 .env.local
 .env.*.local
 .dev.vars
 
-# Cloudflare 本地缓存
+# Cache ในเครื่องของ Cloudflare
 .wrangler/
 
-# 数据备份(本地导出的归档,可能含真实卡片数据)
+# สำรองข้อมูล (ไฟล์ archive ที่ export ในเครื่อง ซึ่งอาจมีข้อมูลจริง)
 databak/*.js
 databak/*.zip
 !databak/.gitkeep
 
-# AI 助手内部文档(规划/会话日志/本地权限/草稿)
-# 内部决策、KV 键名、调试密码等不公开
+# เอกสารภายในของ AI assistant (แผนงาน/บันทึกการสนทนา/สิทธิ์/ร่างงาน)
+# การตัดสินใจภายใน, ชื่อคีย์ KV, รหัสผ่านทดสอบ ฯลฯ ไม่เปิดเผยต่อสาธารณะ
 .claude/
 .codex/
 .ai/
 .grok/
 
-# 临时备份与归档
+# ไฟล์สำรองชั่วคราวและไฟล์ archive
 *.bak
 *.bak.*
 *.tmp

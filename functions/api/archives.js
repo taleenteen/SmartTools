@@ -1,42 +1,33 @@
-// GET    /api/archives                              → 列出所有归档(admin only,读 archive:*:meta)
-// GET    /api/archives?key=archive:<uid>:<ts>        → 单条归档详情(meta + backup 列表概要,不含 data 内容)
-// GET    /api/archives?key=...&include=full          → 单条归档全量(meta + data 内容 + 全部 backups 内容);响应可能很大
+// GET    /api/archives                              → แสดงรายการอาร์ไคฟ์ทั้งหมด (admin only, อ่าน archive:*:meta)
+// GET    /api/archives?key=archive:<uid>:<ts>        → รายละเอียดอาร์ไคฟ์เดี่ยว (meta + สรุปรายการ backup, ไม่รวมเนื้อหา data)
+// GET    /api/archives?key=...&include=full          → ข้อมูลอาร์ไคฟ์แบบเต็ม (meta + เนื้อหา data + เนื้อหา backup ทั้งหมด)
 // DELETE /api/archives?key=archive:<uid>:<ts>&confirm=DELETE-ARCHIVE-<ts>
-//                                                    → 删除整条归档(meta + data + source + backup:*)
+//                                                    → ลบอาร์ไคฟ์ทั้งชุด (meta + data + source + backup:*)
 //
-// A1-c2 (2026-05-18):D3=B 永久归档管理
-//   - admin only,所有路径走 requireAdmin
-//   - D3=B 永久保留语义:**不**自动清理,只能 admin 手动 DELETE
-//   - 列表性能:KV list({prefix:'archive:'}) 一次性拿全部 meta 后端解析(每条 meta JSON ~200 字节)
-//     若未来归档量大可改分页;A1-c2 初版按全量返回
-//   - 单条 GET 不返回 data 字段(可能很大),只回 meta + backup 名字列表
-//   - DELETE 二次校验:confirm === 'DELETE-ARCHIVE-' + ts,防误删
-//
-// 归档 KV 结构(由 users.js force delete 创建):
+// โครงสร้าง KV สำหรับอาร์ไคฟ์ (สร้างขึ้นจาก users.js เมื่อลบผู้ใช้):
 //   archive:<uid>:<ts>:meta       JSON {username,uid,role,archivedAt,archivedAtLocal,archivedBy,dataSize,backupCount,...}
-//   archive:<uid>:<ts>:data       data_js 文本
-//   archive:<uid>:<ts>:source     data_source 文本(可选)
-//   archive:<uid>:<ts>:backup:<bts>   每条用户备份
+//   archive:<uid>:<ts>:data       ข้อความ data_js
+//   archive:<uid>:<ts>:source     ข้อความ data_source (ทางเลือก)
+//   archive:<uid>:<ts>:backup:<bts>   ข้อมูลสำรองแต่ละรายการของผู้ใช้
 
 import { requireAdmin, jsonResponse } from '../_shared/auth.js';
 
 const ARCHIVE_PREFIX = 'archive:';
 
-// 从 archive key 提取 ts(用于 DELETE confirm 校验):archive:<uid>:<ts>
+// ดึงค่า ts จาก archive key (ใช้สำหรับตรวจสอบ DELETE confirm): archive:<uid>:<ts>
 function extractTs(archiveKey) {
-    // archiveKey 形如 archive:alice:20260518_123456
     const parts = archiveKey.split(':');
     if (parts.length < 3) return null;
     return parts[parts.length - 1];
 }
 
-// 校验 archiveKey 格式:archive:<uid>:<ts>(只有 3 段)
+// ตรวจสอบรูปแบบ archiveKey: archive:<uid>:<ts> (ต้องมี 3 ส่วน)
 function isValidArchiveKey(key) {
     if (!key || typeof key !== 'string') return false;
     if (!key.startsWith(ARCHIVE_PREFIX)) return false;
     const parts = key.split(':');
     if (parts.length !== 3) return false;
-    // ts 必须是 YYYYMMDD_HHMMSS 格式
+    // ts ต้องอยู่ในรูปแบบ YYYYMMDD_HHMMSS
     if (!/^\d{8}_\d{6}$/.test(parts[2])) return false;
     return true;
 }
@@ -45,25 +36,25 @@ function isValidArchiveKey(key) {
 export async function onRequestGet({ request, env }) {
     const fail = await requireAdmin(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     const url = new URL(request.url);
     const key = url.searchParams.get('key');
 
-    // ── 1. 单条详情 ──
+    // ── 1. รายละเอียดรายการเดียว ──
     if (key) {
         if (!isValidArchiveKey(key)) {
-            return jsonResponse({ ok: false, error: '无效的 archive key' }, 400);
+            return jsonResponse({ ok: false, error: 'archive key ไม่ถูกต้อง' }, 400);
         }
         const metaRaw = await env.FAV_KV.get(key + ':meta');
         if (metaRaw == null) {
-            return jsonResponse({ ok: false, error: '归档不存在' }, 404);
+            return jsonResponse({ ok: false, error: 'ไม่พบข้อมูลอาร์ไคฟ์' }, 404);
         }
         let meta;
         try { meta = JSON.parse(metaRaw); }
-        catch { return jsonResponse({ ok: false, error: '归档 meta 损坏' }, 500); }
+        catch { return jsonResponse({ ok: false, error: 'ข้อมูล meta ของอาร์ไคฟ์เสียหาย' }, 500); }
 
-        // 列出该归档的所有 backup
+        // แสดงรายการ backup ทั้งหมดของอาร์ไคฟ์นี้
         const backupListing = await env.FAV_KV.list({ prefix: key + ':backup:' });
         const backupNames = backupListing.keys.map(k => {
             return k.name.substring((key + ':backup:').length);
@@ -72,7 +63,7 @@ export async function onRequestGet({ request, env }) {
         const include = url.searchParams.get('include');
         const full = include === 'full';
 
-        // 检查 data / source 是否还在(同时若 full 则读内容)
+        // ตรวจสอบว่า data / source ยังอยู่หรือไม่
         const [dataVal, sourceVal] = await Promise.all([
             env.FAV_KV.get(key + ':data'),
             env.FAV_KV.get(key + ':source')
@@ -91,7 +82,7 @@ export async function onRequestGet({ request, env }) {
             });
         }
 
-        // full 模式:批量读所有 backup 内容
+        // โหมด full: อ่านเนื้อหา backup ทั้งหมดเป็นชุด
         const backupsContent = {};
         const BATCH = 10;
         for (let i = 0; i < backupListing.keys.length; i += BATCH) {
@@ -119,14 +110,14 @@ export async function onRequestGet({ request, env }) {
         });
     }
 
-    // ── 2. 列表 ──
+    // ── 2. รายการทั้งหมด ──
     const listing = await env.FAV_KV.list({ prefix: ARCHIVE_PREFIX });
-    // 只取 :meta 后缀的 key,代表一条归档
+    // เอาเฉพาะคีย์ที่ลงท้ายด้วย :meta
     const metaKeys = listing.keys
         .map(k => k.name)
         .filter(name => name.endsWith(':meta'));
 
-    // 批量读 meta(每批 10 条避免单次 Promise.all 打爆)
+    // อ่าน meta แบบเป็นกลุ่มชุด
     const archives = [];
     const BATCH = 10;
     for (let i = 0; i < metaKeys.length; i += BATCH) {
@@ -136,7 +127,6 @@ export async function onRequestGet({ request, env }) {
                 const raw = await env.FAV_KV.get(mk);
                 if (raw == null) return null;
                 const meta = JSON.parse(raw);
-                // archiveKey 是 meta key 去掉 ':meta' 后缀
                 const archiveKey = mk.substring(0, mk.length - ':meta'.length);
                 return {
                     archiveKey,
@@ -156,7 +146,7 @@ export async function onRequestGet({ request, env }) {
         for (const r of results) if (r) archives.push(r);
     }
 
-    // 按 archivedAt 倒序(最新归档在前)
+    // เรียงตาม archivedAt จากใหม่ไปเก่า
     archives.sort((a, b) => {
         const ta = a.archivedAtLocal || '';
         const tb = b.archivedAtLocal || '';
@@ -174,38 +164,38 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestDelete({ request, env }) {
     const fail = await requireAdmin(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     const url = new URL(request.url);
     const key = url.searchParams.get('key');
     const confirm = url.searchParams.get('confirm') || '';
 
     if (!isValidArchiveKey(key)) {
-        return jsonResponse({ ok: false, error: '无效的 archive key' }, 400);
+        return jsonResponse({ ok: false, error: 'archive key ไม่ถูกต้อง' }, 400);
     }
 
     const ts = extractTs(key);
     if (!ts) {
-        return jsonResponse({ ok: false, error: '无法从 key 提取 ts' }, 400);
+        return jsonResponse({ ok: false, error: 'ไม่สามารถดึง ts จาก key ได้' }, 400);
     }
     const expectedConfirm = 'DELETE-ARCHIVE-' + ts;
     if (confirm !== expectedConfirm) {
         return jsonResponse({
             ok: false,
-            error: 'confirm 字段必须为 ' + expectedConfirm
+            error: 'ฟิลด์ confirm ต้องเป็น ' + expectedConfirm
         }, 400);
     }
 
-    // 确认归档存在(meta 还在)
+    // ตรวจสอบว่าอาร์ไคฟ์มีอยู่จริง
     const metaRaw = await env.FAV_KV.get(key + ':meta');
     if (metaRaw == null) {
-        return jsonResponse({ ok: false, error: '归档不存在' }, 404);
+        return jsonResponse({ ok: false, error: 'ไม่พบข้อมูลอาร์ไคฟ์' }, 404);
     }
 
-    // 列出该归档的所有 key(meta + data + source + backup:*)
+    // แสดงรายการคีย์ทั้งหมดของอาร์ไคฟ์นี้ (meta + data + source + backup:*)
     const listing = await env.FAV_KV.list({ prefix: key + ':' });
 
-    // 批量删除
+    // ลบเป็นกลุ่ม
     const errors = [];
     let deletedCount = 0;
     const BATCH = 10;
@@ -228,7 +218,7 @@ export async function onRequestDelete({ request, env }) {
     if (errors.length > 0) {
         return jsonResponse({
             ok: false,
-            error: '部分 key 删除失败,可重试',
+            error: 'การลบบางคีย์ล้มเหลว สามารถลองใหม่ได้',
             archiveKey: key,
             deletedCount,
             errors

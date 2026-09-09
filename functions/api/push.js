@@ -1,34 +1,13 @@
-// A2-1 推送卡片端点(2026-05-19,2026-05-23 §12 改造)
+// จุดจัดการพุชการ์ด A2-1 (Admin only)
 //
-// POST /api/push  (仅 admin)
+// POST /api/push
 //   body: {
-//     target_users: ['alice', 'bob'],    // 必须手选(D6=A,不接受 __all__)
-//     section_key:  'videoData' | null,  // null = 推到 custom_unclassified;接收方接受时可改
-//     cards: [{type, title, url, ...}],  // 字段白名单清洗
-//     message:      'Markdown 留言',     // 可选,≤500 字符;走 markdown-sanitize
-//     mode:         'append' | 'force'   // append(默认):写对方 inbox 待审 / force(§13):直推 data.js
+//     target_users: ['alice', 'bob'],
+//     section_key:  'videoData' | null,
+//     cards: [{type, title, url, ...}],
+//     message:      'ข้อความ Markdown',
+//     mode:         'append' | 'force'
 //   }
-//
-// 流程(append 默认 = inbox 待审):
-//   1. admin 鉴权 + 字段白名单清洗 + 合法性校验
-//   2. 对每个 target_user:
-//      - 验证用户存在 + 未禁用
-//      - 写 inbox:<uid>:<msgId> 单条 + inbox-list:<uid> 索引(unreadCount++)
-//   3. 返回 {ok, successes, failures}
-//
-// 流程(force = §13 强制推送,单卡限制):
-//   1. 加密大类禁止 force
-//   2. 对每个 target_user:
-//      - 读 user:<uid>:data_js(若 null 用新格式骨架)
-//      - 找 sectionKey 对应的 section:加密 → 跳过 + 记 skipped
-//      - cards 数组末尾插入新卡片
-//      - 备份旧 data 到 user:<uid>:backup:<ts>
-//      - 写新 data + 标 hasData=true
-//
-// 支持的数据格式(force 路径):
-//   - 新格式:var sections = [{key, cards}, ...]
-//   - 老格式:var <sectionKey> = [...] (内置 6 个) + var customSections = [...]
-//   - null/空(EMPTY_STUB):自动生成新格式骨架
 
 import {
     requireAdmin,
@@ -47,24 +26,21 @@ const BUILTIN_KEYS = ['usbDriveData', 'teachingData', 'onlineAIData', 'videoData
 const UNCLASSIFIED_KEY = 'custom_unclassified';
 const ALLOWED_KEYS_FOR_PUSH = [...BUILTIN_KEYS, UNCLASSIFIED_KEY];
 
-// inbox(§12)KV 键
+// inbox KV keys
 const INBOX_PREFIX = 'inbox:';
 const INBOX_LIST_PREFIX = 'inbox-list:';
-const MAX_MESSAGE_LEN = 500; // 推送留言上限(§5.2 / §12)
+const MAX_MESSAGE_LEN = 500;
 function inboxKey(uid, msgId) { return INBOX_PREFIX + uid + ':' + msgId; }
 function inboxListKey(uid)    { return INBOX_LIST_PREFIX + uid; }
-// §14 P2P Hotfix(2026-05-29):sent 副本 — 与 inbox.js 完全对齐
-//   admin /api/push (append) 也写 sent 副本,让 admin 在"我发出的"看到推送历史
-//   force 分支不写(force 不走 inbox,非 P2P 语义)
 function sentKey(uid, msgId) { return 'user:' + uid + ':sent:' + msgId; }
 function sentListKey(uid)    { return 'user:' + uid + ':sent-list'; }
 
-// 卡片字段白名单(防 admin 推脏字段污染用户数据)
+// ไวต์ลิสต์ฟิลด์ของการ์ด
 const ALLOWED_CARD_FIELDS = new Set([
     'type', 'title', 'url', 'desc', 'icon', 'iconImg', 'isLocal',
     'descClickable', 'descUrl', 'content', 'address', 'mailto', 'note',
-    'comment', 'id', 'subCards',    // subCards 给 expandable 卡(从已有卡片选时会带过来)
-    'pushedBy', 'pushedAt'          // §13 强制推送:管理员放置标注(2026-05-23)
+    'comment', 'id', 'subCards',
+    'pushedBy', 'pushedAt'
 ]);
 
 const MAX_FIELD_LEN = 8000;
@@ -73,12 +49,12 @@ const MAX_TARGETS = 50;
 
 function emptyUserDataSkeleton() {
     return `var sections = [
-    { builtin: true, key: 'usbDriveData', kind: 'card', label: '☁️ 在线U盘', visible: true, cards: [] },
-    { builtin: true, key: 'teachingData', kind: 'card', label: '📚 授课资料', visible: true, cards: [] },
-    { builtin: true, key: 'onlineAIData', kind: 'card', label: '🌐 网络资源', visible: true, cards: [] },
-    { builtin: true, key: 'videoData', kind: 'card', label: '🎬 视频聚合', visible: true, cards: [] },
-    { builtin: true, key: 'emailData', kind: 'email', label: '📧 邮箱', visible: true, cards: [] },
-    { builtin: true, key: 'contactData', kind: 'contact', label: '📱 联系方式', visible: true, cards: [] }
+    { builtin: true, key: 'usbDriveData', kind: 'card', label: '☁️ ไดรฟ์ออนไลน์', visible: true, cards: [] },
+    { builtin: true, key: 'teachingData', kind: 'card', label: '📚 สื่อการสอน', visible: true, cards: [] },
+    { builtin: true, key: 'onlineAIData', kind: 'card', label: '🌐 แหล่งข้อมูลออนไลน์', visible: true, cards: [] },
+    { builtin: true, key: 'videoData', kind: 'card', label: '🎬 วิดีโอรวม', visible: true, cards: [] },
+    { builtin: true, key: 'emailData', kind: 'email', label: '📧 อีเมล', visible: true, cards: [] },
+    { builtin: true, key: 'contactData', kind: 'contact', label: '📱 ช่องทางติดต่อ', visible: true, cards: [] }
 ];
 `;
 }
@@ -116,63 +92,54 @@ async function pruneBackups(kv, prefix) {
 export async function onRequestPost({ request, env }) {
     const fail = await requireAdmin(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     let body;
     try { body = await request.json(); }
-    catch { return jsonResponse({ ok: false, error: '请求格式错误' }, 400); }
+    catch { return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง' }, 400); }
 
     const { target_users, section_key, cards, message: rawMessage, mode = 'append' } = body || {};
 
     if (!Array.isArray(target_users) || target_users.length === 0) {
-        return jsonResponse({ ok: false, error: 'target_users 必须是非空数组' }, 400);
+        return jsonResponse({ ok: false, error: 'target_users ต้องเป็นอาร์เรย์ที่ไม่ว่างเปล่า' }, 400);
     }
     if (target_users.length > MAX_TARGETS) {
-        return jsonResponse({ ok: false, error: 'target_users 数量上限 ' + MAX_TARGETS }, 400);
+        return jsonResponse({ ok: false, error: 'จำนวน target_users สูงสุดไม่เกิน ' + MAX_TARGETS }, 400);
     }
     for (const u of target_users) {
         if (!isValidUsername(u)) {
-            return jsonResponse({ ok: false, error: '非法用户名: ' + u }, 400);
+            return jsonResponse({ ok: false, error: 'ชื่อผู้ใช้ไม่ถูกต้อง: ' + u }, 400);
         }
     }
     const targetSecKey = section_key || UNCLASSIFIED_KEY;
     if (!ALLOWED_KEYS_FOR_PUSH.includes(targetSecKey)) {
-        return jsonResponse({ ok: false, error: '不允许推送到该 section: ' + targetSecKey }, 400);
+        return jsonResponse({ ok: false, error: 'ไม่อนุญาตให้พุชไปยัง section นี้: ' + targetSecKey }, 400);
     }
     if (!Array.isArray(cards) || cards.length === 0) {
-        return jsonResponse({ ok: false, error: 'cards 必须非空数组' }, 400);
+        return jsonResponse({ ok: false, error: 'cards ต้องเป็นอาร์เรย์ที่ไม่ว่างเปล่า' }, 400);
     }
     if (cards.length > MAX_CARDS_PER_PUSH) {
-        return jsonResponse({ ok: false, error: 'cards 数量上限 ' + MAX_CARDS_PER_PUSH }, 400);
+        return jsonResponse({ ok: false, error: 'จำนวน cards สูงสุดไม่เกิน ' + MAX_CARDS_PER_PUSH }, 400);
     }
     if (mode !== 'append' && mode !== 'force') {
-        return jsonResponse({ ok: false, error: '不支持的 mode: ' + mode }, 400);
+        return jsonResponse({ ok: false, error: 'ไม่รองรับ mode: ' + mode }, 400);
     }
-    // §13 强制推送:单卡限制(每次只能 1 张)
     if (mode === 'force' && cards.length > 1) {
-        return jsonResponse({ ok: false, error: '强制推送一次只能 1 张卡' }, 400);
+        return jsonResponse({ ok: false, error: 'การพุชแบบบังคับ (force) ทำได้ครั้งละ 1 การ์ดเท่านั้น' }, 400);
     }
-    // §16-B(2026-05-24):force 模式禁止推送加密来源卡片(隐私边界 — 加密卡只能走 inbox 让接收方加密保存)
     if (mode === 'force' && cards.some(c => c && c.__fromEncrypted === true)) {
-        return jsonResponse({ ok: false, error: '加密大类的卡片不能强制推送,只能走默认推送让对方接受到加密大类' }, 400);
+        return jsonResponse({ ok: false, error: 'การ์ดจากหมวดหมู่ที่เข้ารหัสไม่สามารถพุชแบบบังคับได้ ต้องใช้การส่งแบบปกติเพื่อให้ผู้รับบันทึกลงหมวดหมู่ที่เข้ารหัส' }, 400);
     }
-    // §13 强制推送:不能推到加密大类(隐私边界)
-    // 注:单纯 section_key 命中 BUILTIN_KEYS 不能直接判断"加密",真正加密标在 section.encrypted
-    // 这里仅做 section_key 校验;运行时 force 路径会再次扫描 section.encrypted 兜底
-    // (不做提前拦截,因为 admin 不知道 user 的哪个 section 是加密)
 
-    // 留言 sanitize(可选字段;两条路径都用)
     let cleanMessage = '';
     if (rawMessage != null && rawMessage !== '') {
         const sanRes = trySanitizeMarkdown(String(rawMessage), { maxLength: MAX_MESSAGE_LEN });
         if (!sanRes.ok) {
-            return jsonResponse({ ok: false, error: '留言不合法: ' + sanRes.error, code: sanRes.code }, 400);
+            return jsonResponse({ ok: false, error: 'ข้อความไม่ถูกต้อง: ' + sanRes.error, code: sanRes.code }, 400);
         }
         cleanMessage = sanRes.text;
     }
 
-    // §16-B(2026-05-24):任一张卡片标 __fromEncrypted=true → 整个消息打加密标记
-    //   接收方 inbox 看到 fromEncrypted=true 的消息只允许"接受到加密大类",隐藏公开接受/编辑接受
     const fromEncrypted = cards.some(c => c && c.__fromEncrypted === true);
     const cleanCards = cards.map(c => {
         const clean = sanitizeCard(c);
@@ -189,28 +156,24 @@ export async function onRequestPost({ request, env }) {
     const users = usersRaw ? JSON.parse(usersRaw) : {};
 
     // ─────────────────────────────────────────────────────────────
-    // 分支 A:append(默认)— 写对方 inbox 待审
+    // โหมด A: append (ปกติ) — เขียนลง inbox รอการตรวจสอบ
     // ─────────────────────────────────────────────────────────────
     if (mode === 'append') {
         const successes = [];
         const failures = [];
-        // §14 P2P Hotfix(2026-05-29):收集 successful msgIds + sentMessages,循环结束后一次性写 sent-list(避免 N 次 KV 读写竞争)
         const sentMsgIdsToAdd = [];
 
         for (const target of target_users) {
             if (!users[target]) {
-                failures.push({ user: target, reason: '用户不存在' });
+                failures.push({ user: target, reason: 'ไม่พบผู้ใช้' });
                 continue;
             }
             if (users[target].status === 'disabled') {
-                failures.push({ user: target, reason: '用户已禁用' });
+                failures.push({ user: target, reason: 'ผู้ใช้ถูกปิดใช้งาน' });
                 continue;
             }
-            // §14 P2P Hotfix(2026-05-29):尊重 inboxPolicy=closed
-            //   admin 是管理员,从 /api/users 本来就能看到 inboxPolicy,不需要防爆破语义,透明告知 failures
-            //   (P2P /api/inbox?action=send 是 silent,因为防普通用户扫描)
             if (users[target].inboxPolicy === 'closed') {
-                failures.push({ user: target, reason: '收件人已关闭收件' });
+                failures.push({ user: target, reason: 'ผู้รับปิดการรับกล่องข้อความ' });
                 continue;
             }
             try {
@@ -225,24 +188,19 @@ export async function onRequestPost({ request, env }) {
                     cards: cleanCards,
                     message: cleanMessage,
                     status: 'pending',
-                    // §16-B(2026-05-24):加密来源标记 — 接收方 inbox 据此限制只能接受到加密大类
                     fromEncrypted: !!fromEncrypted
                 };
-                // 先写消息体
                 await env.FAV_KV.put(inboxKey(target, msgId), JSON.stringify(message));
-                // 后写索引(失败也不留孤儿:索引没加,GET 看不到那条 — 对用户透明)
                 const list = await readInboxList(env, target);
-                list.ids.unshift(msgId); // 时间倒序
+                list.ids.unshift(msgId);
                 list.unreadCount = (list.unreadCount || 0) + 1;
                 await env.FAV_KV.put(inboxListKey(target), JSON.stringify(list));
-                // §14 P2P Hotfix(2026-05-29):写 sent 副本(每个 target 独立一条),sent-list 循环外批量写
-                //   sent 副本字段与 inbox.js handleSend 一致 — 多存 toUsername 字段,inbox 副本不存
+
                 try {
                     const sentMessage = Object.assign({}, message, { toUsername: target });
                     await env.FAV_KV.put(sentKey(callerUid, msgId), JSON.stringify(sentMessage));
                     sentMsgIdsToAdd.push(msgId);
                 } catch (sentErr) {
-                    // sent 副本写失败不阻断主路径(inbox 已写成功)
                     console.warn('push sent copy failed for', target, msgId, sentErr && sentErr.message);
                 }
                 successes.push({ user: target, msgId, cardsInserted: cleanCards.length });
@@ -253,7 +211,6 @@ export async function onRequestPost({ request, env }) {
             }
         }
 
-        // §14 P2P Hotfix(2026-05-29):循环结束后一次性更新发件方 sent-list(避免 N 次 KV 读写竞争)
         if (sentMsgIdsToAdd.length > 0) {
             try {
                 const sentListRaw = await env.FAV_KV.get(sentListKey(callerUid));
@@ -264,7 +221,6 @@ export async function onRequestPost({ request, env }) {
                         if (parsed && Array.isArray(parsed.ids)) sentList = parsed;
                     } catch {}
                 }
-                // 新 msgId 时间倒序在前(unshift 反向遍历保持顺序)
                 for (let i = sentMsgIdsToAdd.length - 1; i >= 0; i--) {
                     sentList.ids.unshift(sentMsgIdsToAdd[i]);
                 }
@@ -287,9 +243,8 @@ export async function onRequestPost({ request, env }) {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 分支 B:force(§13)— 直推 data.js,绕过 inbox
+    // โหมด B: force — พุชตรงลง data.js
     // ─────────────────────────────────────────────────────────────
-    // §13 标注(2026-05-23):force 推送的卡注入 pushedBy + pushedAt,前端渲染右上角 📌 徽章
     const forceCards = cleanCards.map(c => ({
         ...c,
         pushedBy: pushedBy,
@@ -303,11 +258,11 @@ export async function onRequestPost({ request, env }) {
 
     for (const target of target_users) {
         if (!users[target]) {
-            failures.push({ user: target, reason: '用户不存在' });
+            failures.push({ user: target, reason: 'ไม่พบผู้ใช้' });
             continue;
         }
         if (users[target].status === 'disabled') {
-            failures.push({ user: target, reason: '用户已禁用' });
+            failures.push({ user: target, reason: 'ผู้ใช้ถูกปิดใช้งาน' });
             continue;
         }
         const ns = 'user:' + target;
@@ -323,12 +278,11 @@ export async function onRequestPost({ request, env }) {
 
             const result = appendCardsToSection(userData, targetSecKey, forceCards);
             if (result.skipped) {
-                // 加密大类被跳过 — force 模式下视为失败(强制不能穿透加密)
                 skipped.push({ user: target, reason: result.skippedReason });
                 continue;
             }
             if (!result.modified) {
-                failures.push({ user: target, reason: result.error || '修改未生效' });
+                failures.push({ user: target, reason: result.error || 'การแก้ไขไม่มีผล' });
                 continue;
             }
 
@@ -378,12 +332,12 @@ export async function onRequestPost({ request, env }) {
     });
 }
 
-// 生成 inbox msgId:`<timestampMs>_<rand6>`,可字典序排序 = 时间序
+// สร้าง inbox msgId: `<timestampMs>_<rand6>`, เรียงตามตัวอักษรได้ = เรียงตามลำดับเวลา
 function generateMsgId() {
     return Date.now().toString() + '_' + Math.random().toString(36).slice(2, 8);
 }
 
-// 读 inbox-list 索引(同 inbox.js,本文件复用免循环引)
+// อ่านดัชนี inbox-list (เหมือน inbox.js ใช้ซ้ำในไฟล์นี้เพื่อเลี่ยงการอ้างอิงแบบวนซ้ำ)
 async function readInboxList(env, uid) {
     if (!env.FAV_KV) return { ids: [], unreadCount: 0 };
     try {
@@ -399,9 +353,9 @@ async function readInboxList(env, uid) {
 }
 
 /* ==========================================================
- * 源码扫描:在数据文本中,找到 sectionKey 对应的 section,
- * 在其 cards 数组末尾追加 newCards。加密 section 自动跳过。
- * 返回 {modified, newSrc, skipped, skippedReason, error}
+ * การสแกนโค้ด: ค้นหา section ที่ตรงกับ sectionKey ในข้อความข้อมูล
+ * แล้วต่อ newCards เข้าท้ายอาร์เรย์ cards หมวดหมู่ที่เข้ารหัสจะถูกข้ามโดยอัตโนมัติ
+ * คืนค่า {modified, newSrc, skipped, skippedReason, error}
  * ========================================================== */
 function appendCardsToSection(src, sectionKey, newCards) {
     const newFormatPos = findTopLevelVarDecl(src, 'sections');
@@ -414,28 +368,28 @@ function appendCardsToSection(src, sectionKey, newCards) {
     if (sectionKey === UNCLASSIFIED_KEY) {
         return appendCardsOldFormatCustom(src, sectionKey, newCards);
     }
-    return { modified: false, error: '未识别的数据格式' };
+    return { modified: false, error: 'ไม่รู้จักรูปแบบข้อมูล' };
 }
 
 function appendCardsNewFormat(src, sectionKey, newCards, sectionsStart) {
     const eqPos = src.indexOf('=', sectionsStart);
-    if (eqPos < 0) return { modified: false, error: 'sections var 缺少 =' };
+    if (eqPos < 0) return { modified: false, error: 'ตัวแปร sections ไม่มีเครื่องหมาย =' };
     let pos = skipWs(src, eqPos + 1);
-    if (src[pos] !== '[') return { modified: false, error: 'sections 不是数组' };
+    if (src[pos] !== '[') return { modified: false, error: 'sections ไม่ใช่อาร์เรย์' };
     const sectionsArrStart = pos;
     pos++;
 
     while (pos < src.length) {
         pos = skipWs(src, pos);
         if (src[pos] === ']') break;
-        if (src[pos] !== '{') return { modified: false, error: '期望 { 但实际: ' + src[pos] };
+        if (src[pos] !== '{') return { modified: false, error: 'คาดหวัง { แต่พบ: ' + src[pos] };
 
         const objStart = pos;
         const objEnd = skipBalanced(src, pos, '{', '}');
         const info = inspectSection(src, objStart);
         if (info.key === sectionKey) {
             if (info.encrypted) {
-                return { modified: true, skipped: true, skippedReason: '该 section 是加密大类,无法推送' };
+                return { modified: true, skipped: true, skippedReason: 'หมวดหมู่นี้เป็นหมวดหมู่ที่เข้ารหัสไว้ ไม่สามารถพุชข้อมูลได้' };
             }
             return insertIntoCards(src, objStart, newCards);
         }
@@ -448,7 +402,7 @@ function appendCardsNewFormat(src, sectionKey, newCards, sectionsStart) {
     if (sectionKey === UNCLASSIFIED_KEY) {
         return insertNewUnclassifiedSection(src, sectionsArrStart, newCards);
     }
-    return { modified: false, error: '未找到 section: ' + sectionKey };
+    return { modified: false, error: 'ไม่พบ section: ' + sectionKey };
 }
 
 function inspectSection(src, objStart) {
@@ -499,7 +453,7 @@ function insertIntoCards(src, objStart, newCards) {
         pos++;
         pos = skipWs(src, pos);
         if (keyInfo.name === 'cards') {
-            if (src[pos] !== '[') return { modified: false, error: 'cards 不是数组' };
+            if (src[pos] !== '[') return { modified: false, error: 'cards ไม่ใช่อาร์เรย์' };
             cardsArrStart = pos;
             break;
         }
@@ -509,7 +463,7 @@ function insertIntoCards(src, objStart, newCards) {
         if (src[pos] === '}') break;
     }
     if (cardsArrStart < 0) {
-        return { modified: false, error: 'section 缺少 cards 字段' };
+        return { modified: false, error: 'section ขาดฟิลด์ cards' };
     }
     const cardsEnd = skipBalanced(src, cardsArrStart, '[', ']');
     return insertBeforeBracket(src, cardsArrStart, cardsEnd - 1, newCards);
@@ -552,7 +506,7 @@ function insertNewUnclassifiedSection(src, sectionsArrPos, newCards) {
     const closeBracket = arrEnd - 1;
     const inner = src.substring(sectionsArrPos + 1, closeBracket).trim();
     const cardLines = newCards.map(c => stringifyCard(c));
-    const unclassObj = '\n    { builtin: false, key: \'custom_unclassified\', kind: \'card\', label: \'📥 未分类\', visible: true, cards: [\n            '
+    const unclassObj = '\n    { builtin: false, key: \'custom_unclassified\', kind: \'card\', label: \'📥 ยังไม่จัดหมวดหมู่\', visible: true, cards: [\n            '
         + cardLines.join(',\n            ') + '\n        ] }';
     let insertion;
     if (inner === '') {
@@ -568,35 +522,35 @@ function insertNewUnclassifiedSection(src, sectionsArrPos, newCards) {
 
 function appendCardsOldFormat(src, sectionKey, newCards) {
     const varPos = findTopLevelVarDecl(src, sectionKey);
-    if (varPos < 0) return { modified: false, error: '老格式未找到 var ' + sectionKey };
+    if (varPos < 0) return { modified: false, error: 'รูปแบบเก่าไม่พบ var ' + sectionKey };
     const eqPos = src.indexOf('=', varPos);
-    if (eqPos < 0) return { modified: false, error: '老格式 var 缺少 =' };
+    if (eqPos < 0) return { modified: false, error: 'รูปแบบเก่า var ขาด =' };
     let pos = skipWs(src, eqPos + 1);
-    if (src[pos] !== '[') return { modified: false, error: '老格式 var 不是数组' };
+    if (src[pos] !== '[') return { modified: false, error: 'รูปแบบเก่า var ไม่ใช่อาร์เรย์' };
     const arrEnd = skipBalanced(src, pos, '[', ']');
     return insertBeforeBracket(src, pos, arrEnd - 1, newCards);
 }
 
 function appendCardsOldFormatCustom(src, sectionKey, newCards) {
     const varPos = findTopLevelVarDecl(src, 'customSections');
-    if (varPos < 0) return { modified: false, error: '老格式未找到 customSections' };
+    if (varPos < 0) return { modified: false, error: 'รูปแบบเก่าไม่พบ customSections' };
     const eqPos = src.indexOf('=', varPos);
-    if (eqPos < 0) return { modified: false, error: '老格式 customSections 缺少 =' };
+    if (eqPos < 0) return { modified: false, error: 'รูปแบบเก่า customSections ขาด =' };
     let pos = skipWs(src, eqPos + 1);
-    if (src[pos] !== '[') return { modified: false, error: '老格式 customSections 不是数组' };
+    if (src[pos] !== '[') return { modified: false, error: 'รูปแบบเก่า customSections ไม่ใช่อาร์เรย์' };
     const arrStart = pos;
     const arrEnd = skipBalanced(src, pos, '[', ']');
     let p = pos + 1;
     while (p < arrEnd - 1) {
         p = skipWs(src, p);
         if (src[p] === ']') break;
-        if (src[p] !== '{') return { modified: false, error: '期望 {' };
+        if (src[p] !== '{') return { modified: false, error: 'คาดหวัง {' };
         const objStart = p;
         const objEnd = skipBalanced(src, p, '{', '}');
         const info = inspectSection(src, objStart);
         if (info.key === sectionKey) {
             if (info.encrypted) {
-                return { modified: true, skipped: true, skippedReason: '该 section 是加密大类,无法推送' };
+                return { modified: true, skipped: true, skippedReason: 'หมวดหมู่นี้เป็นหมวดหมู่ที่เข้ารหัสไว้ ไม่สามารถพุชข้อมูลได้' };
             }
             return insertIntoCards(src, objStart, newCards);
         }
@@ -608,7 +562,7 @@ function appendCardsOldFormatCustom(src, sectionKey, newCards) {
     return insertNewUnclassifiedSection(src, arrStart, newCards);
 }
 
-/* ============ 通用扫描工具(从 comment.js 借鉴) ============ */
+/* ============ ยูทิลิตีการสแกน ============ */
 function isWs(c) { return c === ' ' || c === '\t' || c === '\n' || c === '\r'; }
 function isIdChar(c) {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c === '_' || c === '$';
@@ -644,11 +598,11 @@ function skipString(src, pos) {
         if (c === quote) return pos + 1;
         pos++;
     }
-    throw new Error('字符串未闭合 @ ' + pos);
+    throw new Error('สตริงไม่ได้ปิดสมบูรณ์ @ ' + pos);
 }
 
 function skipBalanced(src, pos, open, close) {
-    if (src[pos] !== open) throw new Error('期望 ' + open);
+    if (src[pos] !== open) throw new Error('คาดหวัง ' + open);
     pos++;
     let depth = 1;
     const n = src.length;
@@ -669,7 +623,7 @@ function skipBalanced(src, pos, open, close) {
         else if (c === close) depth--;
         pos++;
     }
-    if (depth !== 0) throw new Error('括号未闭合');
+    if (depth !== 0) throw new Error('วงเล็บไม่ได้ปิดสมบูรณ์');
     return pos;
 }
 
@@ -728,6 +682,6 @@ function readKey(src, pos) {
     const n = src.length;
     const start = pos;
     while (pos < n && isIdChar(src[pos])) pos++;
-    if (pos === start) throw new Error('无法读取键名 @ ' + pos);
+    if (pos === start) throw new Error('ไม่สามารถอ่านชื่อคีย์ได้ @ ' + pos);
     return { name: src.substring(start, pos), end: pos };
 }

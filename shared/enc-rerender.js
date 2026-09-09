@@ -1,18 +1,18 @@
-/* 🔐 EncUnlock 配套：加密大类重渲染器（通用版，供 index1~5 复用）
+/* 🔐 EncUnlock: ตัวเรนเดอร์หมวดหมู่เข้ารหัสซ้ำ (เวอร์ชันสากล)
  *
- * 页面需挂载：window.__favPageAPI = { getLayout, renderSection, clearExpandedState }
- * ★ 适配新 sections 数组格式
+ * หน้าเพจต้องมี: window.__favPageAPI = { getLayout, renderSection, clearExpandedState }
+ * ★ รองรับรูปแบบอาร์เรย์ sections ใหม่
  */
 (function() {
     'use strict';
 
-    // ★ 获取所有加密 section（兼容新旧格式）
+    // ★ ดึง sections ที่เข้ารหัสทั้งหมด (รองรับรูปแบบเก่าและใหม่)
     function getEncryptedSections() {
         var all = window.__sections || window.sections;
         if (Array.isArray(all)) {
             return all.filter(function(s) { return s && s.encrypted; });
         }
-        // 老格式 fallback
+        // fallback รูปแบบเดิม
         if (typeof customSections !== 'undefined' && Array.isArray(customSections)) {
             return customSections.filter(function(c) { return c && c.encrypted; });
         }

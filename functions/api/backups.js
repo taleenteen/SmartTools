@@ -1,12 +1,12 @@
-// GET    /api/backups                          → 列出当前身份的所有备份
-// GET    /api/backups?name=xxx                 → 读取指定备份内容（当前身份的）
-// POST   /api/backups?name=xxx&action=restore  → 恢复为主数据（当前身份的）
-// DELETE /api/backups?name=xxx                 → 删除备份（当前身份的）
+// GET    /api/backups                          → แสดงรายการข้อมูลสำรองทั้งหมดของผู้ใช้ปัจจุบัน
+// GET    /api/backups?name=xxx                 → อ่านเนื้อหาข้อมูลสำรองที่ระบุ (ของผู้ใช้ปัจจุบัน)
+// POST   /api/backups?name=xxx&action=restore  → กู้คืนเป็นข้อมูลหลัก (ของผู้ใช้ปัจจุบัน)
+// DELETE /api/backups?name=xxx                 → ลบข้อมูลสำรอง (ของผู้ใช้ปัจจุบัน)
 //
-// A0 v2 改造（2026-05-17）：按身份选 namespace
-//   admin → 操作 admin:backup:* 和 admin:data_js
-//   user  → 操作 user:<uid>:backup:* 和 user:<uid>:data_js
-//   admin **不跨用户**（即使是 admin 也只看 admin 自己的备份；A1 会单独提供归档管理 API）
+// ปรับปรุง A0 v2: เลือก namespace ตามบทบาท
+//   admin → ดำเนินการ admin:backup:* และ admin:data_js
+//   user  → ดำเนินการ user:<uid>:backup:* และ user:<uid>:data_js
+//   admin **ไม่ข้ามผู้ใช้** (แม้แต่ admin ก็ดูเฉพาะข้อมูลสำรองของ admin เอง; A1 มี API การจัดการอาร์ไคฟ์แยกต่างหาก)
 
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
 
@@ -27,7 +27,7 @@ async function pickNamespace(request, env) {
 export async function onRequestGet({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     const ns = await pickNamespace(request, env);
     const KEYS = nsKeys(ns);
@@ -37,11 +37,11 @@ export async function onRequestGet({ request, env }) {
 
     if (name) {
         let content = await env.FAV_KV.get(KEYS.backupP + name);
-        // ★ 迁移期兼容（仅 admin namespace）：新 key 不存在时尝试老 backup:* 前缀
+        // เข้ากันได้ย้อนหลังช่วงการย้ายข้อมูล (เฉพาะ admin namespace): หากไม่พบคีย์ใหม่ ให้ลองใช้ prefix backup:* เดิม
         if (content == null && ns === 'admin') {
             content = await env.FAV_KV.get('backup:' + name);
         }
-        if (content == null) return jsonResponse({ ok: false, error: '备份不存在' }, 404);
+        if (content == null) return jsonResponse({ ok: false, error: 'ไม่พบข้อมูลสำรอง' }, 404);
         return jsonResponse({ ok: true, content, namespace: ns });
     }
 
@@ -50,8 +50,8 @@ export async function onRequestGet({ request, env }) {
         name: k.name.substring(KEYS.backupP.length)
     }));
 
-    // ★ 迁移期兼容（仅 admin namespace）：admin:backup:* 全空但 backup:* 非空时，列出老备份
-    //   带 legacy:true 标记。migrate-v2 调用后 admin:backup:* 出现，这条路径自动停用。
+    // เข้ากันได้ย้อนหลังช่วงการย้ายข้อมูล (เฉพาะ admin namespace): หาก admin:backup:* ว่างเปล่าแต่ backup:* มีข้อมูล ให้แสดงข้อมูลสำรองเดิม
+    // กำกับด้วยแท็ก legacy:true เมื่อเรียกใช้ migrate-v2 แล้ว admin:backup:* จะปรากฏ และเส้นทางนี้จะปิดใช้งานโดยอัตโนมัติ
     if (ns === 'admin' && items.length === 0) {
         try {
             const legacy = await env.FAV_KV.list({ prefix: 'backup:' });
@@ -71,7 +71,7 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPost({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     const ns = await pickNamespace(request, env);
     const KEYS = nsKeys(ns);
@@ -79,16 +79,16 @@ export async function onRequestPost({ request, env }) {
     const url = new URL(request.url);
     const name = url.searchParams.get('name');
     const action = url.searchParams.get('action');
-    if (!name) return jsonResponse({ ok: false, error: '缺少 name' }, 400);
+    if (!name) return jsonResponse({ ok: false, error: 'ไม่มีพารามิเตอร์ name' }, 400);
 
     if (action === 'restore') {
-        // ★ 迁移期兼容：新 key 不存在时尝试老 backup:*（仅 admin namespace）
+        // เข้ากันได้ย้อนหลังช่วงการย้ายข้อมูล: หากไม่พบคีย์ใหม่ ให้ลองใช้ backup:* เดิม (เฉพาะ admin namespace)
         let content = await env.FAV_KV.get(KEYS.backupP + name);
         if (content == null && ns === 'admin') {
             content = await env.FAV_KV.get('backup:' + name);
         }
-        if (content == null) return jsonResponse({ ok: false, error: '备份不存在' }, 404);
-        // 保存当前作为新备份（同 namespace 内，写到新 key）
+        if (content == null) return jsonResponse({ ok: false, error: 'ไม่พบข้อมูลสำรอง' }, 404);
+        // บันทึกสถานะปัจจุบันเป็นข้อมูลสำรองใหม่ (ใน namespace เดียวกัน เขียนลงคีย์ใหม่)
         const old = await env.FAV_KV.get(KEYS.data);
         if (old && old.trim()) {
             await env.FAV_KV.put(KEYS.backupP + timestamp(), old);
@@ -96,10 +96,10 @@ export async function onRequestPost({ request, env }) {
         await env.FAV_KV.put(KEYS.data, content);
         return jsonResponse({ ok: true, namespace: ns });
     }
-    return jsonResponse({ ok: false, error: '未知 action' }, 400);
+    return jsonResponse({ ok: false, error: 'action ไม่ถูกต้อง' }, 400);
 }
 
-// 北京时间时间戳（与 save.js / comment.js 一致）
+// การประทับเวลา (สอดคล้องกับ save.js / comment.js)
 function timestamp() {
     const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
     const p = n => String(n).padStart(2, '0');
@@ -114,18 +114,18 @@ function timestamp() {
 export async function onRequestDelete({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV' }, 500);
 
     const ns = await pickNamespace(request, env);
     const KEYS = nsKeys(ns);
 
     const url = new URL(request.url);
     const name = url.searchParams.get('name');
-    if (!name) return jsonResponse({ ok: false, error: '缺少 name' }, 400);
-    // ★ 迁移期兼容：先尝试新 key，如果不存在再尝试老 key（仅 admin namespace）
+    if (!name) return jsonResponse({ ok: false, error: 'ไม่มีพารามิเตอร์ name' }, 400);
+    // เข้ากันได้ย้อนหลัง: ลองลบคีย์ใหม่ก่อน หากไม่พบให้ลองลบคีย์เดิม (เฉพาะ admin namespace)
     await env.FAV_KV.delete(KEYS.backupP + name);
     if (ns === 'admin') {
-        // 同时删老 key（如果还在）——避免 admin 删了备份但老备份还在
+        // ลบคีย์เดิมด้วย (หากยังมีอยู่) — ป้องกันกรณี admin ลบแล้วแต่ข้อมูลสำรองเดิมยังค้าง
         await env.FAV_KV.delete('backup:' + name);
     }
     return jsonResponse({ ok: true, namespace: ns });

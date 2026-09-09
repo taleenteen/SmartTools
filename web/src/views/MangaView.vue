@@ -3,7 +3,7 @@ import { BookOpen, Plus, Search } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import ThemeSwitcher from '@/components/bookmarks/ThemeSwitcher.vue'
+import AppNavbar from '@/components/bookmarks/AppNavbar.vue'
 import MangaCard from '@/components/manga/MangaCard.vue'
 import MangaDetailsDialog from '@/components/manga/MangaDetailsDialog.vue'
 import MangaEditorDialog from '@/components/manga/MangaEditorDialog.vue'
@@ -150,43 +150,21 @@ async function handleDelete(item: MangaItem) {
 </script>
 
 <template>
-  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
-    <!-- Header -->
-    <header class="mb-8 flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p class="text-sm text-muted-foreground">{{ t.appName }}</p>
-        <h1 class="text-2xl font-semibold tracking-tight text-foreground">{{ t.manga }}</h1>
-        <p class="mt-1 text-xs text-muted-foreground">{{ t.mangaSubtitle }}</p>
-      </div>
+  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-2 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
+    <AppNavbar />
 
-      <div class="flex flex-wrap items-center gap-2.5">
-        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-          <RouterLink to="/">{{ t.bookmarks }}</RouterLink>
-        </Button>
-        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-          <RouterLink to="/notes" :title="t.notesSubtitle">{{ t.notes }}</RouterLink>
-        </Button>
-        <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-          <RouterLink to="/t">{{ t.tools }}</RouterLink>
-        </Button>
-        <Button
-          v-if="session.loggedIn"
-          as-child
-          class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all"
-        >
-          <RouterLink to="/settings">{{ t.settings }}</RouterLink>
-        </Button>
-        <Button
-          v-else
-          as-child
-          variant="outline"
-          class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all"
-        >
-          <RouterLink to="/settings">{{ t.login }}</RouterLink>
-        </Button>
-        <ThemeSwitcher />
+    <!-- Page Title & Stats -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{{ t.manga }}</h1>
+          <span class="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+            {{ mangaList.length }}
+          </span>
+        </div>
+        <p class="mt-1 text-xs sm:text-sm text-muted-foreground">{{ t.mangaSubtitle }}</p>
       </div>
-    </header>
+    </div>
 
     <!-- Visitor Notice Banner -->
     <div

@@ -14,7 +14,7 @@ import {
   FolderKanban,
 } from 'lucide-vue-next'
 
-import ThemeSwitcher from '@/components/bookmarks/ThemeSwitcher.vue'
+import AppNavbar from '@/components/bookmarks/AppNavbar.vue'
 import NoteCard from '@/components/notes/NoteCard.vue'
 import NoteListItem from '@/components/notes/NoteListItem.vue'
 import ProjectCard from '@/components/notes/ProjectCard.vue'
@@ -251,11 +251,12 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
 
 <template>
   <div class="min-h-screen bg-background text-foreground flex flex-col">
-    <div class="flex-1 w-full max-w-md sm:max-w-3xl lg:max-w-6xl mx-auto px-4 py-8 flex flex-col">
-      <!-- 1. APP HEADER -->
-      <header class="mb-8 flex items-start justify-between gap-3">
+    <div class="flex-1 w-full max-w-md sm:max-w-3xl lg:max-w-6xl mx-auto px-4 py-4 flex flex-col">
+      <AppNavbar />
+
+      <!-- Page Title & Stats -->
+      <div class="mb-6 flex items-center justify-between">
         <div>
-          <p class="text-sm text-muted-foreground">{{ t.appName }}</p>
           <div class="flex items-center gap-2.5">
             <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{{ t.notes }}</h1>
             <span class="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
@@ -266,26 +267,7 @@ function handleExportNote(noteSummary: NoteItemSummary, format: 'md' | 'html' | 
             {{ t.notesSubtitle }}
           </p>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2.5">
-          <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-            <RouterLink to="/">{{ t.bookmarks }}</RouterLink>
-          </Button>
-          <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-            <RouterLink to="/manga">{{ t.manga }}</RouterLink>
-          </Button>
-          <Button as-child variant="outline" class="h-10 px-4 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-            <RouterLink to="/t">{{ t.tools }}</RouterLink>
-          </Button>
-          <Button as-child variant="default" class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-            <RouterLink to="/notes">{{ t.notes }}</RouterLink>
-          </Button>
-          <Button as-child variant="outline" class="h-10 px-4.5 rounded-full text-sm font-medium shadow-xs hover:shadow-sm transition-all">
-            <RouterLink to="/settings">{{ session.loggedIn ? t.settings : t.login }}</RouterLink>
-          </Button>
-          <ThemeSwitcher />
-        </div>
-      </header>
+      </div>
 
       <!-- Visitor Notice Banner -->
       <div

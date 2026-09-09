@@ -1,20 +1,20 @@
 /* ================================================================================
  * shared/csv-schema.js
  * ─────────────────────────────────────────────────────────────────────────────
- * CSV 导入导出 schema 与工具库（B0 阶段产出）
+ * สคีมาและไลบรารีเครื่องมือนำเข้าและส่งออก CSV (ผลลัพธ์ระยะ B0)
  *
- * 用途：把 sections 数组（来自 data.js 或 KV）与 CSV 文本互相转换。
- * 阶段：B0 只产出本文件 + tools/test-csv.html；不动现有任何文件；不加 UI 入口。
- * 后续：B1 在 config.html 加"导出 CSV"按钮；B2 加"导入 CSV"；B3 加模板下载入口。
+ * การใช้งาน: แปลงไปมาระหว่างอาร์เรย์ sections (จาก data.js หรือ KV) กับข้อความ CSV
+ * ระยะ: B0 สร้างเฉพาะไฟล์นี้ ไม่กระทบไฟล์ที่มีอยู่ ไม่เพิ่ม UI
+ * ถัดไป: B1 เพิ่มปุ่มส่งออก CSV ใน config.html; B2 เพิ่มนำเข้า CSV; B3 เพิ่มดาวน์โหลดแม่แบบ
  *
- * 规则参考：.claude/下一阶段计划.md §3 阶段 B0 v2 实施版（v2-2 ~ v2-5）。
+ * กฎอ้างอิง: แผนระยะ B0 v2
  *
- * 加载方式（不用 ES module，与 fav-page.js / note-modal.js 风格一致）：
+ * วิธีโหลด (ไม่ใช้ ES module ให้สไตล์ตรงกับ fav-page.js / note-modal.js):
  *   <script src="shared/csv-schema.js"></script>
- *   然后通过 window.CsvSchema.* 调用。
+ *   แล้วเรียกผ่าน window.CsvSchema.*
  *
- * 对外 API（v2-3 函数签名）：
- *   CsvSchema.COLUMNS           : 15 列元数据数组
+ * API ภายนอก:
+ *   CsvSchema.COLUMNS           : อาร์เรย์ข้อมูลเมทาดาตาคอลัมน์
  *   CsvSchema.sectionsToCSV(sections, opts)
  *   CsvSchema.csvToSections(text, opts)
  *   CsvSchema.downloadTemplate()
@@ -26,27 +26,27 @@
     'use strict';
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【1】列定义（v2-2 字段表，2026-05-16 修订：补 content/address/mailto）
+     * 【1】คำจำกัดความของคอลัมน์
      * ════════════════════════════════════════════════════════════════════════════ */
     var COLUMNS = [
-        { col: 'section_key',    required: true,  desc: '所属分类 key（6 个内置或 custom_*）' },
-        { col: 'card_id',        required: false, desc: '主卡 id；老数据无 id 时留空' },
-        { col: 'parent_card_id', required: false, desc: '子卡片归属的父卡 id；主卡留空' },
-        { col: 'sub_index',      required: false, desc: '子卡片在父卡 subCards 中的序号（0 起）；主卡留空' },
-        { col: 'type',           required: false, desc: 'simple / desc-clickable / expandable；子卡和邮箱卡留空' },
-        { col: 'title',          required: false, desc: '卡片或子卡片标题；compact-card 子卡可用 content 代替' },
-        { col: 'content',        required: false, desc: 'compact-card 子卡的单行内容文字（与 title 二选一）' },
-        { col: 'url',            required: false, desc: '点击跳转 URL' },
-        { col: 'desc',           required: false, desc: '纯文本描述' },
-        { col: 'descClickable',  required: false, desc: '可点击的描述文字；子卡不用' },
-        { col: 'descUrl',        required: false, desc: '可点击描述的跳转 URL；子卡不用' },
-        { col: 'icon',           required: false, desc: 'emoji 或单行 SVG' },
-        { col: 'iconImg',        required: false, desc: '图标 URL（优先于 icon）' },
-        { col: 'isLocal',        required: false, desc: 'true / 空；导入时空 = false' },
-        { col: 'address',        required: false, desc: '邮箱卡专用：显示用邮箱地址（如 aabb(AT)cc.cc）' },
-        { col: 'mailto',         required: false, desc: '邮箱卡专用：点击行为目标（可以是 http(s) 或 mailto:）' },
-        { col: 'comment',        required: false, desc: 'Markdown 注释（多行用 RFC4180 转义）' },
-        { col: 'note',           required: false, desc: '子卡专用，compact-card 的额外小字' }
+        { col: 'section_key',    required: true,  desc: 'คีย์ของหมวดหมู่ (6 ตัวเลือกเริ่มต้นหรือ custom_*)' },
+        { col: 'card_id',        required: false, desc: 'id การ์ดหลัก; ข้อมูลเก่าไม่มี id ให้เว้นว่าง' },
+        { col: 'parent_card_id', required: false, desc: 'id ของการ์ดหลักที่เป็นเจ้าของการ์ดย่อย; การ์ดหลักให้เว้นว่าง' },
+        { col: 'sub_index',      required: false, desc: 'ลำดับของการ์ดย่อยใน subCards ของการ์ดหลัก (เริ่มจาก 0); การ์ดหลักให้เว้นว่าง' },
+        { col: 'type',           required: false, desc: 'simple / desc-clickable / expandable; การ์ดย่อยและการ์ดอีเมลให้เว้นว่าง' },
+        { col: 'title',          required: false, desc: 'ชื่อการ์ดหรือการ์ดย่อย; การ์ดย่อย compact-card สามารถใช้ content แทนได้' },
+        { col: 'content',        required: false, desc: 'ข้อความบรรทัดเดียวของการ์ดย่อย compact-card (เลือกอย่างใดอย่างหนึ่งระหว่าง title)' },
+        { col: 'url',            required: false, desc: 'URL ปลายทางเมื่อคลิก' },
+        { col: 'desc',           required: false, desc: 'คำอธิบายข้อความธรรมดา' },
+        { col: 'descClickable',  required: false, desc: 'ข้อความคำอธิบายที่คลิกได้; การ์ดย่อยไม่ใช้' },
+        { col: 'descUrl',        required: false, desc: 'URL ปลายทางของคำอธิบายที่คลิกได้; การ์ดย่อยไม่ใช้' },
+        { col: 'icon',           required: false, desc: 'อิโมจิ หรือ SVG บรรทัดเดียว' },
+        { col: 'iconImg',        required: false, desc: 'URL ไอคอนรูปภาพ (มีผลเหนือกว่า icon)' },
+        { col: 'isLocal',        required: false, desc: 'true / ว่าง; เมื่อนำเข้าค่าว่าง = false' },
+        { col: 'address',        required: false, desc: 'สำหรับการ์ดอีเมล: ที่อยู่อีเมลที่ใช้แสดง (เช่น aabb(AT)cc.cc)' },
+        { col: 'mailto',         required: false, desc: 'สำหรับการ์ดอีเมล: ปลายทางการคลิก (อาจเป็น http(s) หรือ mailto:)' },
+        { col: 'comment',        required: false, desc: 'หมายเหตุ Markdown (หลายบรรทัด escape ตาม RFC4180)' },
+        { col: 'note',           required: false, desc: 'สำหรับการ์ดย่อย ข้อความขนาดเล็กเพิ่มเติมของ compact-card' }
     ];
 
     var COL_NAMES = COLUMNS.map(function(c) { return c.col; });
@@ -55,7 +55,7 @@
     var EOL = '\r\n';
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【2】CSV 编码（v2-4：RFC 4180）
+     * 【2】การเข้ารหัส CSV (RFC 4180)
      * ════════════════════════════════════════════════════════════════════════════ */
 
     function serializeField(v) {
@@ -72,7 +72,7 @@
         return values.map(serializeField).join(',');
     }
 
-    // 单行解析（不含换行）。用于 parseRow 对外 API。
+    // แยกวิเคราะห์แถวเดียว (ไม่รวมการขึ้นบรรทัดใหม่) ใช้สำหรับ parseRow API ภายนอก
     function parseLine(line) {
         var out = [];
         var i = 0, len = line.length;
@@ -91,7 +91,7 @@
                 if (ch === ',') { out.push(field); field = ''; i++; continue; }
                 if (ch === '"') {
                     if (field === '') { inQuotes = true; i++; continue; }
-                    // 中途遇到 " 当字面量处理（宽松）
+                    // เมื่อพบ " ตรงกลางให้จัดการเป็นตัวอักษรธรรมดา (แบบยืดหยุ่น)
                     field += ch; i++; continue;
                 }
                 field += ch; i++;
@@ -101,7 +101,7 @@
         return out;
     }
 
-    // 完整 CSV 文本切分成行（处理引号内换行）。
+    // แยกข้อความ CSV สมบูรณ์ออกเป็นแถว (รองรับการขึ้นบรรทัดใหม่ในเครื่องหมายคำพูด)
     function splitCSVRows(text) {
         var rows = [];
         var i = 0, len = text.length;
@@ -133,7 +133,7 @@
             }
             field += ch; i++;
         }
-        // 收尾
+        // สิ้นสุด
         if (field !== '' || row.length > 0) {
             row.push(field);
             rows.push(row);
@@ -141,7 +141,7 @@
         return rows;
     }
 
-    // 把一行的数组与表头对齐成对象
+    // จัดเรียงอาร์เรย์แถวให้ตรงกับส่วนหัวตารางเป็นอ็อบเจกต์
     function rowToObj(headers, values) {
         var obj = {};
         for (var i = 0; i < headers.length; i++) {
@@ -151,17 +151,17 @@
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【3】对外:parseRow（单行 CSV → 对象，按 COLUMNS 顺序）
+     * 【3】parseRow (แถว CSV เดียว → อ็อบเจกต์ ตามลำดับ COLUMNS)
      * ════════════════════════════════════════════════════════════════════════════ */
 
     function parseRow(row) {
-        // 接受字符串（一行 CSV）或已切分好的数组
+        // รับสตริง (หนึ่งแถว CSV) หรืออาร์เรย์ที่แยกแล้ว
         var values = Array.isArray(row) ? row : parseLine(String(row || ''));
         return rowToObj(COL_NAMES, values);
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【4】sectionsToCSV（v2-5 导出边界）
+     * 【4】sectionsToCSV (การส่งออก)
      * ════════════════════════════════════════════════════════════════════════════ */
 
     function valOrEmpty(v) {
@@ -181,7 +181,7 @@
             '',                                  // sub_index
             valOrEmpty(card.type),
             valOrEmpty(card.title),
-            '',                                  // content (主卡不用)
+            '',                                  // content (การ์ดหลักไม่ใช้)
             valOrEmpty(card.url),
             valOrEmpty(card.desc),
             valOrEmpty(card.descClickable),
@@ -192,28 +192,28 @@
             valOrEmpty(card.address),
             valOrEmpty(card.mailto),
             valOrEmpty(card.comment),
-            ''                                   // note (主卡不用)
+            ''                                   // note (การ์ดหลักไม่ใช้)
         ];
     }
 
     function subCardToRow(sec, parentId, sc, idx) {
         return [
             sec.key,
-            '',                                  // card_id (子卡无独立 id)
+            '',                                  // card_id (การ์ดย่อยไม่มี id อิสระ)
             valOrEmpty(parentId),
             String(idx),
-            '[sub]',                             // type 列对子卡用 [sub] 视觉标记（导入时会被识别并清空）
+            '[sub]',                             // คอลัมน์ type ใช้เครื่องหมาย [sub] สำหรับการ์ดย่อย (จะถูกรับรู้และล้างออกเมื่อนำเข้า)
             valOrEmpty(sc.title),
             valOrEmpty(sc.content),
             valOrEmpty(sc.url),
             valOrEmpty(sc.desc),
-            '',                                  // descClickable (子卡不用)
-            '',                                  // descUrl (子卡不用)
+            '',                                  // descClickable (การ์ดย่อยไม่ใช้)
+            '',                                  // descUrl (การ์ดย่อยไม่ใช้)
             valOrEmpty(sc.icon),
             valOrEmpty(sc.iconImg),
             boolToCSV(sc.isLocal),
-            '',                                  // address (子卡不用)
-            '',                                  // mailto (子卡不用)
+            '',                                  // address (การ์ดย่อยไม่ใช้)
+            '',                                  // mailto (การ์ดย่อยไม่ใช้)
             valOrEmpty(sc.comment),
             valOrEmpty(sc.note)
         ];
@@ -233,11 +233,11 @@
             var sec = sections[s];
             if (!sec || !sec.key) continue;
 
-            // v2-5: 加密 section 处理
+            // จัดการ section ที่เข้ารหัส
             if (sec.encrypted === true) {
                 if (!includeEncrypted) continue;
-                // 已要求包含但内容未解锁 → 抛错（B0 不做密钥派生）
-                // 判定"已解锁"的标志：cards 已经是明文数组（非 enc 字符串结构）
+                // ขอให้รวมแล้วแต่เนื้อหายังไม่ได้ปลดล็อก → โยนข้อผิดพลาด
+                // เครื่องหมายระบุว่า "ปลดล็อกแล้ว": cards เป็นอาร์เรย์ข้อความธรรมดาแล้ว
                 if (!Array.isArray(sec.cards)) {
                     throw new Error('Encrypted section not unlocked: ' + sec.key);
                 }
@@ -264,16 +264,16 @@
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【5】csvToSections（v2-5 导入边界，容错不抛异常）
+     * 【5】csvToSections (การนำเข้า มีความทนทานต่อข้อผิดพลาด)
      * ════════════════════════════════════════════════════════════════════════════ */
 
     function parseBool(v) {
         if (v == null) return false;
         var s = String(v).trim().toLowerCase();
-        return s === 'true';   // 仅 true 视为 true，其它（false/0/no/空）一律视为 false
+        return s === 'true';   // เฉพาะ true เท่านั้นที่ถือเป็น true ส่วนอื่นๆ ถือเป็น false
     }
 
-    // 剥除 BOM
+    // ลบ BOM ออก
     function stripBOM(text) {
         if (text && text.charCodeAt(0) === 0xFEFF) return text.slice(1);
         return text;
@@ -281,7 +281,7 @@
 
     function csvToSections(text, opts) {
         opts = opts || {};
-        var strictRequired = opts.strictRequired !== false; // 默认 true
+        var strictRequired = opts.strictRequired !== false; // ค่าเริ่มต้น true
 
         var errors = [];
         var warnings = [];
@@ -293,7 +293,7 @@
         var raw = stripBOM(String(text));
         var grid = splitCSVRows(raw);
 
-        // 去掉末尾空行
+        // ตัดแถวว่างท้ายสุดออก
         while (grid.length && grid[grid.length - 1].length === 1 && grid[grid.length - 1][0] === '') {
             grid.pop();
         }
@@ -302,9 +302,9 @@
             return { rows: [], errors: errors, warnings: warnings };
         }
 
-        // 表头
+        // ส่วนหัว
         var headers = grid[0].map(function(h) { return String(h || '').trim(); });
-        // 验证至少包含必填列
+        // ตรวจสอบว่ามีคอลัมน์ที่จำเป็นครบถ้วน
         var missingCols = [];
         COLUMNS.forEach(function(c) {
             if (c.required && headers.indexOf(c.col) < 0) {
@@ -316,7 +316,7 @@
             return { rows: [], errors: errors, warnings: warnings };
         }
 
-        // 将 grid 转成 rawRows（每行一个 obj，含 _line 表示 1-based 行号）
+        // แปลง grid เป็น rawRows (แต่ละแถวเป็น obj พร้อม _line ระบุหมายเลขบรรทัดแบบ 1-based)
         var rawRows = [];
         for (var i = 1; i < grid.length; i++) {
             var values = grid[i];
@@ -327,18 +327,18 @@
             rawRows.push(obj);
         }
 
-        // 委托给 validateRows
+        // ส่งต่อให้ validateRows
         return validateRows(rawRows, { strictRequired: strictRequired });
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【5b】validateRows（独立校验，给 xlsx-adapter 等共享调用）
-     * 输入：[{ section_key, card_id, ..., _line }]  raw 行对象数组
-     * 输出：{ rows, errors, warnings }  与 csvToSections 完全一致
+     * 【5b】validateRows (การตรวจสอบอิสระ ใช้ร่วมกับ xlsx-adapter ฯลฯ)
+     * นำเข้า: [{ section_key, card_id, ..., _line }] อาร์เรย์อ็อบเจกต์แถวดิบ
+     * ผลลัพธ์: { rows, errors, warnings } เหมือนกับ csvToSections
      * ════════════════════════════════════════════════════════════════════════════ */
     function validateRows(rawRows, opts) {
         opts = opts || {};
-        var strictRequired = opts.strictRequired !== false; // 默认 true
+        var strictRequired = opts.strictRequired !== false; // ค่าเริ่มต้น true
 
         var errors = [];
         var warnings = [];
@@ -348,7 +348,7 @@
             return { rows: rows, errors: errors, warnings: warnings };
         }
 
-        // 多余字段剪枝表（按 kind）
+        // ตารางตัดฟิลด์ส่วนเกิน (ตาม kind)
         var EXTRA_BY_KIND = {
             sub:     ['descClickable', 'descUrl', 'address', 'mailto'],
             email:   ['descClickable', 'descUrl', 'content', 'note'],
@@ -361,11 +361,11 @@
         for (var i = 0; i < rawRows.length; i++) {
             var obj = rawRows[i];
             if (!obj || typeof obj !== 'object') continue;
-            // 兼容：未提供 _line 时按数组下标 +2（推断为 1-based CSV 行号，跳过表头）
+            // ความเข้ากันได้: เมื่อไม่มี _line ให้ใช้ดัชนีอาร์เรย์ +2 (อนุมานเป็นหมายเลขบรรทัดแบบ 1-based โดยข้ามส่วนหัว)
             var lineNo = obj._line || (i + 2);
             obj._line = lineNo;
 
-            // 必填校验
+            // ตรวจสอบฟิลด์ที่จำเป็น
             if (strictRequired) {
                 if (!obj.section_key || String(obj.section_key).trim() === '') {
                     errors.push({ line: lineNo, col: 'section_key', msg: 'section_key is required' });
@@ -392,10 +392,10 @@
                     continue;
                 }
                 obj.sub_index = idx;
-                // 子卡 type 应留空或为 [sub] 标记；其它值给 warning 并清空
+                // type ของการ์ดย่อยควรเว้นว่างหรือเป็น [sub]; ค่าอื่นๆ จะแจ้งเตือนและล้างออก
                 var subType = obj.type ? String(obj.type).trim() : '';
                 if (subType === '[sub]') {
-                    obj.type = '';  // 标记字符串，无副作用清空即可
+                    obj.type = '';  // สตริงเครื่องหมาย ล้างออกได้โดยไม่มีผลข้างเคียง
                 } else if (subType !== '') {
                     warnings.push({ line: lineNo, col: 'type', msg: 'sub-card should leave type empty or use [sub]; value ignored' });
                     obj.type = '';
@@ -443,7 +443,7 @@
 
             obj.isLocal = parseBool(obj.isLocal);
 
-            // 多余字段剪枝
+            // ตัดฟิลด์ส่วนเกิน
             var kind;
             if (isSub)                                 kind = 'sub';
             else if (isEmailCard)                      kind = 'email';
@@ -470,7 +470,7 @@
             rows.push(obj);
         }
 
-        // 一致性检查：parent_card_id 必须能找到匹配的主卡
+        // ตรวจสอบความสอดคล้อง: parent_card_id ต้องตรงกับการ์ดหลักที่มีอยู่
         var mainIds = {};
         rows.forEach(function(r) {
             if (!r.parent_card_id && r.card_id) {
@@ -490,7 +490,7 @@
             }
         });
 
-        // 重复 card_id 检查
+        // ตรวจสอบ card_id ซ้ำ
         var seenIds = {};
         rows.forEach(function(r) {
             if (!r.parent_card_id && r.card_id) {
@@ -506,7 +506,7 @@
             }
         });
 
-        // 过滤掉 errors 涉及的行
+        // กรองแถวที่มีข้อผิดพลาดออก
         var errLines = {};
         errors.forEach(function(e) { errLines[e.line] = true; });
         rows = rows.filter(function(r) { return !errLines[r._line]; });
@@ -515,57 +515,57 @@
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【6】downloadTemplate（B3 也会用到，B0 先实现）
+     * 【6】downloadTemplate (ดาวน์โหลดแม่แบบ CSV)
      * ════════════════════════════════════════════════════════════════════════════ */
 
-    // 生成模板 CSV 文本（独立函数，复用给 xlsx-adapter）
+    // สร้างข้อความแม่แบบ CSV (ฟังก์ชันอิสระ ใช้ซ้ำกับ xlsx-adapter)
     function buildTemplateCSV() {
         var header = serializeRow(COL_NAMES);
-        // 列顺序：section_key, card_id, parent_card_id, sub_index, type, title, content,
+        // ลำดับคอลัมน์: section_key, card_id, parent_card_id, sub_index, type, title, content,
         //         url, desc, descClickable, descUrl, icon, iconImg, isLocal,
         //         address, mailto, comment, note
         var sample1 = serializeRow([
             'usbDriveData', 'card_sample01', '', '',
-            'simple', '示例：在线U盘', '',
-            'https://example.com/usb', '云硬盘示例',
+            'simple', 'ตัวอย่าง: ไดรฟ์ออนไลน์', '',
+            'https://example.com/usb', 'ตัวอย่างคลาวด์ไดรฟ์',
             '', '', '💾', '', '',
             '', '',
-            '> 这是 Markdown 注释\n支持多行', ''
+            '> นี่คือหมายเหตุ Markdown\nรองรับหลายบรรทัด', ''
         ]);
         var sample_desc = serializeRow([
             'teachingData', 'card_sample_desc', '', '',
-            'desc-clickable', '示例：desc-clickable 卡', '',
+            'desc-clickable', 'ตัวอย่าง: การ์ด desc-clickable', '',
             'https://example.com/main',
             '',
-            '主标题跳 main，描述跳 sub', 'https://example.com/sub',
+            'หัวข้อหลักไป main คำอธิบายไป sub', 'https://example.com/sub',
             '📚', '', '',
             '', '', '', ''
         ]);
         var sample2 = serializeRow([
             'onlineAIData', 'card_sample02', '', '',
-            'expandable', '示例：AI 工具合集', '',
+            'expandable', 'ตัวอย่าง: รวมเครื่องมือ AI', '',
             'https://example.com/ai', '',
-            'AI 工具', 'https://example.com/ai',
+            'เครื่องมือ AI', 'https://example.com/ai',
             '🧠', '', '',
             '', '', '', ''
         ]);
         var sample2sub1 = serializeRow([
             'onlineAIData', '', 'card_sample02', '0',
             '[sub]', 'DeepSeek', '',
-            'https://www.deepseek.com/', '深度求索',
+            'https://www.deepseek.com/', 'DeepSeek ผู้ช่วย AI',
             '', '', '🤿', '', '',
             '', '', '', ''
         ]);
         var sample2sub2 = serializeRow([
             'onlineAIData', '', 'card_sample02', '1',
-            '[sub]', '', '紧凑子卡示例链接',
+            '[sub]', '', 'ลิงก์ตัวอย่างการ์ดย่อยขนาดกะทัดรัด',
             'https://example.com/compact', '',
             '', '', '🔗', '', '',
-            '', '', '', '紧凑卡的小字'
+            '', '', '', 'ข้อความเล็กของการ์ดกะทัดรัด'
         ]);
         var sample3 = serializeRow([
             'emailData', 'card_sample03', '', '',
-            '', '示例邮箱', '',
+            '', 'อีเมลตัวอย่าง', '',
             'http://example.com', '',
             '', '', '✉️', '', '',
             'example(AT)example.com', 'mailto:example@example.com',
@@ -573,9 +573,9 @@
         ]);
         var sample4 = serializeRow([
             'contactData', 'card_sample04', '', '',
-            '', '示例联系方式（GitHub）', '',
+            '', 'ช่องทางติดต่อตัวอย่าง (GitHub)', '',
             'https://github.com/yumumao',
-            'GitHub 个人主页',
+            'หน้าโปรไฟล์ GitHub',
             '', '',
             '🐙', '', '',
             '', '', '', ''
@@ -598,7 +598,7 @@
     }
 
     /* ════════════════════════════════════════════════════════════════════════════
-     * 【7】对外挂载
+     * 【7】ส่งออก API สู่ภายนอก
      * ════════════════════════════════════════════════════════════════════════════ */
     window.CsvSchema = {
         COLUMNS:         COLUMNS,

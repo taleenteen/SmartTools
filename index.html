@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💖跳转中...</title>
+    <title>💖 กำลังโหลด...</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' x='-0.11em' font-size='90'>😺🏷</text></svg>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Sarabun', sans-serif;
             background: #0e0e12;
             display: flex;
             align-items: center;
@@ -19,7 +19,7 @@
             overflow: hidden;
         }
 
-        /* ═══ 背景：慢速流动渐变 ═══ */
+        /* ═══ พื้นหลัง: ไล่ระดับสีแบบหมุนช้าๆ ═══ */
         body::before {
             content: '';
             position: fixed;
@@ -37,7 +37,7 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ═══ 主容器 ═══ */
+        /* ═══ คอนเทนเนอร์หลัก ═══ */
         .loader {
             position: relative;
             z-index: 1;
@@ -50,7 +50,7 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* ═══ 中心书签图标 ═══ */
+        /* ═══ ไอคอนบุ๊กมาร์กตรงกลาง ═══ */
         .center-icon {
             font-size: 44px;
             display: block;
@@ -63,14 +63,14 @@
             50%      { transform: scale(1.12); }
         }
 
-        /* ═══ 环绕轨道容器 ═══ */
+        /* ═══ คอนเทนเนอร์วงโคจร ═══ */
         .orbit-ring {
             position: relative;
             width: 160px; height: 160px;
             margin: 0 auto 20px;
         }
 
-        /* 轨道虚线圈 */
+        /* วงกลมเส้นประวงโคจร */
         .orbit-ring::before {
             content: '';
             position: absolute;
@@ -83,7 +83,7 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ═══ 环绕的主题 emoji ═══ */
+        /* ═══ อีโมจิธีมในวงโคจร ═══ */
         .orbit-emoji {
             position: absolute;
             font-size: 22px;
@@ -109,7 +109,7 @@
             100% { transform: rotate(360deg) translateX(68px) rotate(-360deg) scale(0.85); opacity: 0.65; }
         }
 
-        /* ═══ 色块闪烁条 ═══ */
+        /* ═══ แถบจุดสีระยิบระยับ ═══ */
         .color-bar {
             display: flex;
             justify-content: center;
@@ -132,14 +132,14 @@
             50%      { transform: scale(2.2); opacity: 1;   box-shadow: 0 0 8px currentColor; }
         }
 
-        /* ═══ 文字 ═══ */
+        /* ═══ ข้อความ ═══ */
         .text {
             font-size: 13px;
             letter-spacing: 0.06em;
             color: rgba(255,255,255,0.35);
         }
 
-        /* ═══ noscript 回退 ═══ */
+        /* ═══ กรณี noscript ═══ */
         noscript .fallback {
             text-align: center;
             padding: 40px 20px;
@@ -168,12 +168,9 @@
         }
     </style>
 
-    <!-- ★ 跳转逻辑：带上 hash -->
+    <!-- ★ โค้ด redirect หน้าแรก -->
 <script>
 (function() {
-    // 2026-05-22 客户端兜底:Pages 不识别 functions/@xxx.js,_redirects 的 /@:slug 200 rewrite
-    // 实测也未生效(/@alice 命中 SPA fallback 落到 index.html)。这里识别 /@<slug> 路径,
-    // 立即 location.replace 到 /u/<slug>,走 functions/u/[[slug]].js 老路由。URL 栏最终显示 /u/<slug>。
     try {
         var atMatch = (window.location.pathname || '').match(/^\/@([a-z0-9][a-z0-9_\-]{0,31})\/?$/i);
         if (atMatch) {
@@ -182,52 +179,23 @@
         }
     } catch(e) {}
 
-    var themeToPage = {
-        'nebula': 'index1.html',
-        'notion': 'index2.html',
-        'stripe': 'index3.html',
-        'dark':   'index4.html',
-        'mint':   'index5.html'
-    };
-    var DEFAULT_PAGE = 'index2.html';
-    var STORAGE_KEY  = 'fav_last_style';
-    var allowed = ['index1.html','index2.html','index3.html','index4.html','index5.html'];
-    var hash = window.location.hash;
-    var target = null;
-
-    /* ① 优先看 URL 参数 ?theme=stripe */
+    var theme = null;
     try {
-        var theme = new URLSearchParams(window.location.search).get('theme');
-        if (theme && themeToPage[theme]) {
-            target = themeToPage[theme];
-        }
+        theme = new URLSearchParams(window.location.search).get('theme');
     } catch(e) {}
 
-    /* ② 再看 localStorage（和 index 页面统一用 fav_last_style） */
-    if (!target) {
-        try {
-            var saved = localStorage.getItem(STORAGE_KEY);
-            if (saved && allowed.indexOf(saved) !== -1) {
-                target = saved;
-            }
-        } catch(e) {}
-    }
-
-    /* ③ 兜底 */
-    if (!target) target = DEFAULT_PAGE;
-
-    /* ★ A1.5 透传 ?u=<slug> 等公开访问参数到 indexN.html */
-    window.location.replace(target + (window.location.search || '') + hash);
+    var target = '/' + (theme ? ('?theme=' + encodeURIComponent(theme)) : '') + window.location.hash;
+    window.location.replace(target);
 })();
 </script>
 </head>
 <body>
 
-<!-- 中心图标 -->
+<!-- ไอคอนตรงกลาง -->
     <div class="loader" id="loader">
         <span class="center-icon">⭐️</span>
 
-<!-- 环绕轨道 -->
+<!-- วงโคจร -->
         <div class="orbit-ring">
             <span class="orbit-emoji">🌌</span>
             <span class="orbit-emoji">📄</span>
@@ -236,7 +204,7 @@
             <span class="orbit-emoji">🌿</span>
         </div>
         
-<!-- 色块闪烁 -->
+<!-- แถบจุดสีระยิบระยับ -->
         <div class="color-bar">
             <span class="color-dot"></span>
             <span class="color-dot"></span>
@@ -245,19 +213,14 @@
             <span class="color-dot"></span>
         </div>
 
-        <p class="text">正在跳转…</p>
+        <p class="text">กำลังโหลด…</p>
     </div>
 
     <noscript>
         <div class="fallback">
-            <h2>⭐️ 选择收藏夹风格</h2>
-            <a href="index1.html">🌌 Nebula</a>
-            <a href="index2.html">📄 Notion</a>
-            <a href="index3.html">💎 Stripe</a>
-            <a href="index4.html">🖤 Framer</a>
-            <a href="index5.html">🌿 Mintlify</a>
+            <h2>⭐️ เข้าสู่ระบบ SmartTools</h2>
+            <a href="/">หน้าหลัก Bookmarks</a>
         </div>
     </noscript>
-
 </body>
 </html>

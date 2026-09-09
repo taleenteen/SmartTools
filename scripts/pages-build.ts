@@ -26,7 +26,6 @@ await cp(webDist, dist, { recursive: true })
 
 const staticCopies = [
   'config.html',
-  'toolsindex.html',
   'about.html',
   'data.js',
   'robots.txt',
@@ -37,7 +36,6 @@ for (const file of staticCopies) {
   await cp(join(root, file), join(dist, file))
 }
 
-await cp(join(root, 'tools'), join(dist, 'tools'), { recursive: true })
 await cp(join(root, 'shared'), join(dist, 'shared'), { recursive: true })
 
 const workerOut = join(root, 'worker-build')

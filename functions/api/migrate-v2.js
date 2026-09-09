@@ -1,13 +1,6 @@
-// POST /api/migrate-v2  → 把老 KV 命名空间迁移到 admin: 前缀
-//   body: { dryRun: true|false }  默认 false
+// POST /api/migrate-v2  → ย้าย namespace ของ KV เดิมไปยัง prefix admin:
+//   body: { dryRun: true|false }  default false
 //   admin only
-//
-// 设计原则（A0 v2-3 + v2-9）：
-//   - 幂等：admin:* 已存在则跳过对应项
-//   - 老 key 不删（保留 30 天回滚窗口）
-//   - dryRun 模式只汇报"会迁移什么"，不写
-//   - 写入 migration:v2:done = <UTC+8 时间戳> 标志
-//   - 任何中途失败都不破坏已迁移项；可重试
 
 import { requireAdmin, jsonResponse } from '../_shared/auth.js';
 
@@ -21,9 +14,8 @@ const NEW_BACKUP_PREF = 'admin:backup:';
 
 const MIGRATION_DONE_KEY = 'migration:v2:done';
 
-// 北京时间时间戳（与 save.js / comment.js / backups.js 保持一致）
 function timestamp() {
-    const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
     const p = n => String(n).padStart(2, '0');
     return d.getUTCFullYear() +
            p(d.getUTCMonth() + 1) +
@@ -34,21 +26,20 @@ function timestamp() {
 }
 
 export async function onRequestPost({ request, env }) {
-    // 1. 鉴权
+    // 1. ตรวจสอบสิทธิ์ admin
     const fail = await requireAdmin(request, env);
     if (fail) return fail;
 
     if (!env.FAV_KV) {
-        return jsonResponse({ ok: false, error: '未绑定 KV(FAV_KV)' }, 500);
+        return jsonResponse({ ok: false, error: 'ยังไม่ได้ผูก KV (FAV_KV)' }, 500);
     }
 
-    // 2. 解析参数
+    // 2. แยกวิเคราะห์พารามิเตอร์
     let body = {};
-    try { body = await request.json(); } catch { /* 允许空 body */ }
+    try { body = await request.json(); } catch { /* อนุญาตให้ body ว่าง */ }
     const dryRun = body && body.dryRun === true;
 
-    // 3. 计划阶段：读取所有需要操作的 key
-    //    幂等性：每项操作前都检查"新 key 是否已存在"
+    // 3. วางแผนการย้ายข้อมูล
     const plan = {
         dryRun,
         dataJs:     { old: OLD_DATA_KEY,   new: NEW_DATA_KEY,   action: 'skip', reason: '' },
@@ -71,7 +62,6 @@ export async function onRequestPost({ request, env }) {
         } else {
             plan.dataJs.action = 'copy';
             plan.dataJs.bytes = oldVal.length;
-            // 真执行时使用：把 oldVal 暂存在 plan，避免再读一次
             plan.dataJs._payload = oldVal;
         }
     }
@@ -95,15 +85,14 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 3c. backup:* - 列出所有老备份
+    // 3c. backup:*
     {
         const oldList = await env.FAV_KV.list({ prefix: OLD_BACKUP_PREF });
-        // 列出新备份用于幂等检查
         const newList = await env.FAV_KV.list({ prefix: NEW_BACKUP_PREF });
         const newSet = new Set(newList.keys.map(k => k.name));
 
         for (const k of oldList.keys) {
-            const ts = k.name.substring(OLD_BACKUP_PREF.length); // 提取时间戳部分
+            const ts = k.name.substring(OLD_BACKUP_PREF.length);
             const newKey = NEW_BACKUP_PREF + ts;
             if (newSet.has(newKey)) {
                 plan.backups.push({ old: k.name, new: newKey, action: 'skip', reason: 'already exists' });
@@ -113,9 +102,8 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 4. 干跑 → 只返回计划
+    // 4. โหมด dryRun → ส่งกลับเฉพาะแผนงาน
     if (dryRun) {
-        // 清理 _payload（不要泄漏数据内容到响应）
         const cleanPlan = JSON.parse(JSON.stringify(plan, (k, v) => k === '_payload' ? undefined : v));
         const wouldCopy = countCopy(cleanPlan);
         return jsonResponse({
@@ -126,7 +114,7 @@ export async function onRequestPost({ request, env }) {
         });
     }
 
-    // 5. 真执行
+    // 5. ดำเนินการจริง
     const errors = [];
     const result = {
         dataJs:     plan.dataJs.action === 'skip' ? 'skip' : 'pending',
@@ -134,7 +122,7 @@ export async function onRequestPost({ request, env }) {
         backups:    { total: plan.backups.length, copied: 0, skipped: 0, failed: 0 }
     };
 
-    // 5a. 复制 data_js
+    // 5a. คัดลอก data_js
     if (plan.dataJs.action === 'copy') {
         try {
             await env.FAV_KV.put(NEW_DATA_KEY, plan.dataJs._payload);
@@ -145,7 +133,7 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 5b. 复制 data_source
+    // 5b. คัดลอก data_source
     if (plan.dataSource.action === 'copy') {
         try {
             await env.FAV_KV.put(NEW_SOURCE_KEY, plan.dataSource._payload);
@@ -156,9 +144,7 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 5c. 批量复制 backup:*
-    //     批次大小 10，避免单次 Promise.all 把 KV 打爆。
-    //     单个失败不阻断其他备份的迁移。
+    // 5c. คัดลอก backup:* เป็นกลุ่ม
     {
         const toCopy = plan.backups.filter(b => b.action === 'copy');
         result.backups.skipped = plan.backups.length - toCopy.length;
@@ -187,8 +173,7 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 6. 写迁移完成标记
-    //    只在没有失败时写；有失败时不写，调用方可以再调一次幂等补齐
+    // 6. บันทึกเครื่องหมายเสร็จสิ้น
     const allOk = errors.length === 0;
     if (allOk) {
         try {
@@ -205,8 +190,8 @@ export async function onRequestPost({ request, env }) {
         errors,
         markerWritten: allOk && errors.length === 0,
         note: allOk
-            ? '迁移完成。老 key 保留作为回滚路径，不会自动删除。'
-            : '部分项失败，请检查 errors 后重试。本次未写 migration:v2:done。'
+            ? 'การย้ายข้อมูลเสร็จสมบูรณ์ คีย์เดิมถูกเก็บไว้เพื่อใช้เป็นช่องทาง rollback'
+            : 'บางรายการล้มเหลว โปรดตรวจสอบ errors แล้วลองใหม่อีกครั้ง'
     });
 }
 

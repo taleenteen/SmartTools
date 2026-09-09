@@ -1,10 +1,5 @@
-// POST /api/change-password  → 已登录用户修改自己的密码
+// POST /api/change-password  → ผู้ใช้ที่เข้าสู่ระบบเปลี่ยนรหัสผ่านของตนเอง
 //   body: { oldPassword, newPassword }
-//
-// A0 v2 改造（2026-05-17）：
-//   - 新密码统一用 PBKDF2 + 16B 盐写入
-//   - 老 sha256Hex 用户：旧密码用 sha256 校验（无感升级路径），通过后用 PBKDF2 写新密码
-//   - env-admin 尚未 bootstrap 时拒绝：env 密码请在 Cloudflare Dashboard 改
 
 import {
     requireAuth,
@@ -27,7 +22,7 @@ function timingSafeEqual(a, b) {
     return diff === 0;
 }
 
-// 老格式 sha256Hex（用于兼容老 users.js 写入的 passHash）
+// แฮช sha256 แบบเดิม (สำหรับรองรับ passHash แบบเก่า)
 async function sha256Hex(str) {
     const data = new TextEncoder().encode(str);
     const hash = await crypto.subtle.digest('SHA-256', data);
@@ -37,23 +32,23 @@ async function sha256Hex(str) {
 export async function onRequestPost({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ยังไม่ได้ผูก KV' }, 500);
 
     const username = await getUsername(request, env);
     if (!username) {
-        return jsonResponse({ ok: false, error: '无法识别当前用户' }, 401);
+        return jsonResponse({ ok: false, error: 'ไม่สามารถระบุตัวตนผู้ใช้ปัจจุบัน' }, 401);
     }
 
     let body;
     try { body = await request.json(); }
-    catch { return jsonResponse({ ok: false, error: '请求格式错误' }, 400); }
+    catch { return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง' }, 400); }
 
     const { oldPassword, newPassword } = body || {};
     if (!oldPassword || !newPassword) {
-        return jsonResponse({ ok: false, error: '新旧密码不能为空' }, 400);
+        return jsonResponse({ ok: false, error: 'ต้องระบุทั้งรหัสผ่านเดิมและรหัสผ่านใหม่' }, 400);
     }
     if (newPassword.length < 4) {
-        return jsonResponse({ ok: false, error: '新密码至少 4 位' }, 400);
+        return jsonResponse({ ok: false, error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' }, 400);
     }
 
     const raw = await env.FAV_KV.get(USERS_KEY);
@@ -61,14 +56,13 @@ export async function onRequestPost({ request, env }) {
     const user = users[username];
 
     if (!user || !user.passHash) {
-        // env-admin 还没 bootstrap 进 users 表，或者 token 里的 u 在 users 表里找不到
         return jsonResponse({
             ok: false,
-            error: 'KV 中无此用户条目；env 配置的管理员密码请在 Cloudflare Dashboard 修改'
+            error: 'ไม่พบข้อมูลผู้ใช้นี้ใน KV สำหรับรหัสผ่าน admin ที่ตั้งใน env โปรดแก้ไขใน Cloudflare Dashboard'
         }, 400);
     }
 
-    // 校验旧密码：根据条目格式选择算法
+    // ตรวจสอบรหัสผ่านเดิม
     const isLegacySha256 = !user.salt;
     let oldOk;
     if (isLegacySha256) {
@@ -79,10 +73,10 @@ export async function onRequestPost({ request, env }) {
         oldOk = timingSafeEqual(oldHash, user.passHash);
     }
     if (!oldOk) {
-        return jsonResponse({ ok: false, error: '旧密码错误' }, 401);
+        return jsonResponse({ ok: false, error: 'รหัสผ่านเดิมไม่ถูกต้อง' }, 401);
     }
 
-    // 写新密码：统一用 PBKDF2（顺手升级老条目）
+    // เขียนรหัสผ่านใหม่ด้วย PBKDF2
     const newSalt = randomSaltB64(16);
     const newHash = await pbkdf2Hex(newPassword, newSalt, PBKDF2_ITER);
     users[username] = {
@@ -97,6 +91,6 @@ export async function onRequestPost({ request, env }) {
         ok: true,
         algo: 'pbkdf2',
         upgradedFromLegacy: isLegacySha256,
-        note: isLegacySha256 ? '密码已更新（同时升级哈希算法）' : '密码已更新'
+        note: isLegacySha256 ? 'อัปเดตรหัสผ่านเรียบร้อยแล้ว (อัปเกรดอัลกอริทึมแฮช)' : 'อัปเดตรหัสผ่านเรียบร้อยแล้ว'
     });
 }

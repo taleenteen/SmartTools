@@ -15,7 +15,7 @@ describe('App', () => {
       routes: [
         { path: '/', name: 'home', component: HomeView },
         { path: '/settings', name: 'settings', component: HomeView },
-        { path: '/t', name: 'tools', component: HomeView },
+        { path: '/notes', name: 'notes', component: HomeView },
       ],
     })
     await router.push('/')

@@ -7,7 +7,7 @@ import {
 } from '../_shared/auth.js';
 
 /**
- * 时序安全的字符串比较，避免通过响应时间差推测密码。
+ * การเปรียบเทียบสตริงที่ปลอดภัยต่อการโจมตีแบบ timing attack
  */
 function timingSafeEqual(a, b) {
     if (typeof a !== 'string' || typeof b !== 'string') return false;
@@ -19,7 +19,7 @@ function timingSafeEqual(a, b) {
     return diff === 0;
 }
 
-// 兼容老 users 条目的 sha256 校验（A0 v2 兼容路径）
+// ตรวจสอบ sha256 ย้อนหลังสำหรับผู้ใช้เวอร์ชันเก่า
 async function sha256Hex(str) {
     const data = new TextEncoder().encode(str);
     const hash = await crypto.subtle.digest('SHA-256', data);
@@ -27,7 +27,7 @@ async function sha256Hex(str) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
- * 登录速率限制（P2-1）— 保持原状
+ * การจำกัดอัตราการเข้าสู่ระบบ (Rate Limiting)
  * ════════════════════════════════════════════════════════════════════════════ */
 const LOCKOUT_PREFIX  = 'lockout:';
 const MAX_ATTEMPTS    = 5;
@@ -82,10 +82,10 @@ async function clearFailure(env, ip) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
- * 主入口
+ * จุดเข้าหลัก (Main handler)
  * ════════════════════════════════════════════════════════════════════════════ */
 export async function onRequestPost({ request, env }) {
-    // ★ 速率限制最早判断
+    // ตรวจสอบอัตราการพยายามเข้าสู่ระบบก่อน
     const ip = getClientIP(request);
     const lock = await readLockout(env, ip);
     if (lock && lock.count >= MAX_ATTEMPTS) {
@@ -93,7 +93,7 @@ export async function onRequestPost({ request, env }) {
         const retryAfter = Math.max(1, (lock.expireAt || nowSec) - nowSec);
         return jsonResponse({
             ok: false,
-            error: '登录失败次数过多，请稍后再试'
+            error: 'พยายามเข้าสู่ระบบผิดพลาดหลายครั้งเกินไป โปรดลองใหม่อีกครั้งในภายหลัง'
         }, 429, { 'Retry-After': String(retryAfter) });
     }
 
@@ -101,12 +101,12 @@ export async function onRequestPost({ request, env }) {
     try {
         body = await request.json();
     } catch {
-        return jsonResponse({ ok: false, error: '请求格式错误' }, 400);
+        return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง' }, 400);
     }
 
     const { username, password } = body || {};
     if (!username || !password) {
-        return jsonResponse({ ok: false, error: '用户名或密码为空' }, 400);
+        return jsonResponse({ ok: false, error: 'ชื่อผู้ใช้หรือรหัสผ่านว่างเปล่า' }, 400);
     }
 
     const adminUser = env.ADMIN_USER;
@@ -114,7 +114,7 @@ export async function onRequestPost({ request, env }) {
     if (!adminUser || !adminPass) {
         return jsonResponse({
             ok: false,
-            error: '服务端未配置 ADMIN_USER / ADMIN_PASS 环境变量'
+            error: 'เซิร์ฟเวอร์ไม่ได้กำหนดค่าตัวแปรสภาพแวดล้อม ADMIN_USER / ADMIN_PASS'
         }, 500);
     }
 
@@ -122,33 +122,33 @@ export async function onRequestPost({ request, env }) {
     if (!secret) {
         return jsonResponse({
             ok: false,
-            error: '服务端未配置 AUTH_SECRET 或长度不足 16 位'
+            error: 'เซิร์ฟเวอร์ไม่ได้กำหนดค่า AUTH_SECRET หรือมีความยาวน้อยกว่า 16 ตัวอักษร'
         }, 500);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // 决策树:
-    //   1. 读 KV users 表
-    //   2. 若 users[username] 存在 且 status=active 且 密码匹配 → 签 KV 用户 token
-    //   3. 否则 若 username === ADMIN_USER 且 password === ADMIN_PASS(env) → env-admin 路径 (兜底)
-    //      - 顺便 bootstrap users[ADMIN_USER] (若缺)
-    //   4. 都不匹配 → 401
+    // แผนผังการตัดสินใจ:
+    //   1. อ่านตาราง users จาก KV
+    //   2. หาก users[username] มีอยู่ และ status=active และ รหัสผ่านตรงกัน → เซ็นโทเคนผู้ใช้ KV
+    //   3. มิฉะนั้น หาก username === ADMIN_USER และ password === ADMIN_PASS (env) → ทางเลือกสำรอง env-admin
+    //      - ทำการ bootstrap users[ADMIN_USER] (หากยังไม่มี)
+    //   4. หากไม่ตรงเงื่อนไขใดเลย → 401
     // ──────────────────────────────────────────────────────────────────────────
 
-    // 读 users 表
+    // อ่านตาราง users
     let users = {};
     if (env.FAV_KV) {
         try {
             const raw = await env.FAV_KV.get(USERS_KEY);
             if (raw) users = JSON.parse(raw);
         } catch (e) {
-            // KV 读失败不算致命，继续走 env-admin 兜底
+            // หากอ่าน KV ล้มเหลว ยังสามารถใช้ env-admin สำรองได้
             users = {};
         }
     }
     const kvUser = users[username];
 
-    // 路径 1: KV user 存在且 active
+    // ทางเลือก 1: ผู้ใช้ KV มีอยู่และสถานะ active
     let kvAuthOk = false;
     let kvUserUpgradedFromLegacy = false;
     if (kvUser && kvUser.status !== 'disabled') {
@@ -168,7 +168,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (kvAuthOk) {
-        // ★ 顺手升级老 sha256 用户（best-effort：失败不阻断登录）
+        // อัปเกรดผู้ใช้ sha256 เดิมอัตโนมัติ (best-effort)
         if (kvUserUpgradedFromLegacy && env.FAV_KV) {
             try {
                 const newSalt = randomSaltB64(16);
@@ -182,7 +182,6 @@ export async function onRequestPost({ request, env }) {
                 await env.FAV_KV.put(USERS_KEY, JSON.stringify(users));
             } catch (e) {
                 console.warn('pbkdf2 upgrade failed for', username, e && e.message);
-                // 不阻断登录；下次登录再试
             }
         }
 
@@ -194,30 +193,20 @@ export async function onRequestPost({ request, env }) {
         });
     }
 
-    // 路径 2: env-admin 兜底
-    //   适用场景:
-    //     (a) users 表里没 ADMIN_USER (首次部署 / 全新 KV)
-    //     (b) users 表里 ADMIN_USER 被 disabled (防自锁)
-    //     (c) users 表里 ADMIN_USER 的 KV passHash 校验失败 (KV 被改坏)
-    //   都用 env 凭据校验,通过就 bootstrap/更新 users 表
+    // ทางเลือก 2: env-admin สำรอง
     const userOk = timingSafeEqual(username, adminUser);
     const passOk = timingSafeEqual(password, adminPass);
 
     if (!userOk || !passOk) {
         await recordFailure(env, ip);
-        // 区分 4 种失败,但对外统一返回 401(不泄漏哪个字段错)
-        // 1. KV user 不存在 + username !== ADMIN_USER → "用户名或密码错误"
-        // 2. KV user 存在 + 密码错 → 同上
-        // 3. KV user 存在 + status=disabled + 不是 ADMIN_USER → 同上(避免泄漏账号已停用这个信息)
-        // 4. username === ADMIN_USER 但 env password 错 → 同上
-        return jsonResponse({ ok: false, error: '用户名或密码错误' }, 401);
+        return jsonResponse({ ok: false, error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' }, 401);
     }
 
-    // env-admin 通过：bootstrap users[ADMIN_USER] (若缺) 或 同步 (若存在但密码漂移)
+    // env-admin ผ่านการตรวจสอบ: ทำการ bootstrap users[ADMIN_USER]
     if (env.FAV_KV) {
         const needBootstrap = !kvUser
             || !kvUser.salt
-            || !kvAuthOk;   // 后者覆盖 "kvUser 存在但 KV passHash 不匹配 env"
+            || !kvAuthOk;
         if (needBootstrap) {
             try {
                 const newSalt = randomSaltB64(16);
@@ -237,7 +226,6 @@ export async function onRequestPost({ request, env }) {
                 await env.FAV_KV.put(USERS_KEY, JSON.stringify(users));
             } catch (e) {
                 console.warn('admin bootstrap failed:', e && e.message);
-                // 不阻断登录,env 路径仍然有效
             }
         }
     }

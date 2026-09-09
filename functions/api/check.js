@@ -1,10 +1,8 @@
-// GET /api/check  → 返回当前会话状态与服务端配置概览
+// GET /api/check  → ตรวจสอบสถานะ session ปัจจุบันและภาพรวมการตั้งค่าเซิร์ฟเวอร์
 //
-// A0 v2 改造（2026-05-17）：新增 uid / role / migrationNeeded 字段
-//   - username 字段保持不变（A0 阶段 config.html 仍依赖它）
-//   - role 从 token 取，老 token 兼容时按 ADMIN_USER 推断
-//   - migrationNeeded = 老 KV 有 data 但 migration:v2:done 标记缺失
-//   - A0 阶段前端不消费 migrationNeeded，A1 才会真用；后端先输出避免日后再加字段
+// เพิ่มฟิลด์ uid / role / migrationNeeded
+//   - role อ่านจาก token
+//   - migrationNeeded = KV มี data เดิมแต่ยังไม่ได้ทำ migration
 
 import { getCookieToken, verifyToken, getSecret, jsonResponse, getRole } from '../_shared/auth.js';
 
@@ -23,7 +21,7 @@ export async function onRequestGet({ request, env }) {
             hasKV: !!env.FAV_KV,
             hasAdmin: !!(env.ADMIN_USER && env.ADMIN_PASS),
             migrationNeeded: false,
-            error: 'AUTH_SECRET 未配置'
+            error: 'ยังไม่ได้กำหนดค่า AUTH_SECRET'
         });
     }
 
@@ -32,13 +30,9 @@ export async function onRequestGet({ request, env }) {
     const role = payload ? await getRole(request, env) : null;
     const uid  = payload ? (payload.uid != null ? payload.uid : payload.u) : null;
 
-    // 迁移检测：仅在 KV 绑定时判断
-    //   migrationNeeded = true 当且仅当 老 data_js 存在 && migration:v2:done 缺失
-    //   只读两个 key,不影响登录路径性能
-    // §14 P2P / A1.5(2026-05-29):顺手返回当前用户的 inboxPolicy / publicSlug / publicEnabled
-    //   前端 currentUser shape 已经预留这些字段,now 真正填充
+    // ตรวจสอบสถานะการย้ายข้อมูล (migration)
     let migrationNeeded = false;
-    let inboxPolicy = 'open';   // 老用户/无字段默认 open
+    let inboxPolicy = 'open';
     let publicSlug = null;
     let publicEnabled = false;
     if (env.FAV_KV) {
@@ -49,9 +43,9 @@ export async function onRequestGet({ request, env }) {
             ]);
             migrationNeeded = !done && !!oldData;
         } catch {
-            // KV 异常时静默,不阻断 check 主响应
+            // เมื่อเกิดข้อผิดพลาด KV จะไม่ขัดจังหวะการตอบกลับหลัก
         }
-        // 读自己的 users 条目拿 inboxPolicy / publicSlug / publicEnabled
+        // อ่านข้อมูล users เพื่อดึง inboxPolicy / publicSlug / publicEnabled
         if (payload && uid) {
             try {
                 const usersRaw = await env.FAV_KV.get('users');

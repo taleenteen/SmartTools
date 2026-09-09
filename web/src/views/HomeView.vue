@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Motion } from 'motion-v'
 
-import AppHeader from '@/components/bookmarks/AppHeader.vue'
+import AppNavbar from '@/components/bookmarks/AppNavbar.vue'
 import BookmarkCardSkeleton from '@/components/bookmarks/BookmarkCardSkeleton.vue'
 import EmailRow from '@/components/bookmarks/EmailRow.vue'
 import LockFab from '@/components/bookmarks/LockFab.vue'
@@ -105,8 +105,22 @@ onMounted(() => {
     class="fixed inset-0 z-20 bg-overlay"
     @click="ui.collapse()"
   />
-  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-10 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
-    <AppHeader />
+  <main class="relative mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pb-16 pt-2 sm:max-w-3xl sm:px-6 lg:max-w-6xl lg:px-8">
+    <AppNavbar />
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{{ t.bookmarks }}</h1>
+          <span v-if="bookmarks.status === 'ready'" class="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+            {{ cardSections.reduce((acc, s) => acc + s.cards.length, 0) }}
+          </span>
+        </div>
+        <p v-if="viewer.slug || viewer.username" class="mt-1 text-xs text-muted-foreground">
+          {{ viewer.slug || viewer.username }}
+        </p>
+      </div>
+    </div>
 
     <div v-if="bookmarks.status === 'ready'" class="mb-8">
       <QuickSearchBar v-model="searchQuery" />

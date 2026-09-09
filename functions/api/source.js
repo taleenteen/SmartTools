@@ -1,12 +1,6 @@
-// GET  /api/source        → 查询当前身份的数据源（无需登录;未登录默认 admin namespace）
-// POST /api/source        → 切换当前身份的数据源（必须登录）
+// GET  /api/source        → ตรวจสอบแหล่งข้อมูลปัจจุบัน
+// POST /api/source        → สลับแหล่งข้อมูลปัจจุบัน (ต้องเข้าสู่ระบบ)
 //   body: { source: 'kv' | 'static' }
-//
-// A0 v2 改造（2026-05-17）：按身份选 namespace
-//   未登录 / admin → admin:data_source（迁移期回退老 data_source）
-//   user           → user:<uid>:data_source
-// 注意:本端点不限制 user 设置 'static'(D1=Z 由 UI 层决定 user 是否暴露此选项);
-// 后端忠实读写,接受 'kv' / 'static' 两值。
 
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
 
@@ -27,7 +21,7 @@ async function pickSourceKey(request, env) {
     return { key: userSourceKey(uid), ns: 'user:' + uid, isLoggedIn: true };
 }
 
-// 查询当前 namespace 的 data_source
+// ตรวจสอบ data_source ของ namespace ปัจจุบัน
 export async function onRequestGet({ request, env }) {
     if (!env.FAV_KV) {
         return jsonResponse({
@@ -35,14 +29,14 @@ export async function onRequestGet({ request, env }) {
             source: 'static',
             configured: false,
             namespace: 'admin',
-            note: '未绑定 KV，默认使用 static'
+            note: 'ยังไม่ได้ผูก KV ใช้ static เป็นค่าเริ่มต้น'
         });
     }
 
     const { key, ns } = await pickSourceKey(request, env);
     let saved = await env.FAV_KV.get(key);
 
-    // ★ 迁移期兼容（仅 admin namespace）：admin:data_source 未设置时回退老 data_source
+    // รองรับช่วงย้ายข้อมูล (admin namespace): หากยังไม่ตั้งค่า key ใหม่ ให้ใช้ key เดิม
     if (saved == null && ns === 'admin') {
         saved = await env.FAV_KV.get(OLD_SOURCE_KEY);
     }
@@ -56,22 +50,22 @@ export async function onRequestGet({ request, env }) {
     });
 }
 
-// 切换当前 namespace 的 data_source
+// สลับ data_source ของ namespace ปัจจุบัน
 export async function onRequestPost({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
 
     if (!env.FAV_KV) {
-        return jsonResponse({ ok: false, error: '未绑定 KV，无法切换数据源' }, 500);
+        return jsonResponse({ ok: false, error: 'ยังไม่ได้ผูก KV ไม่สามารถเปลี่ยนแหล่งข้อมูลได้' }, 500);
     }
 
     let body;
     try { body = await request.json(); }
-    catch { return jsonResponse({ ok: false, error: '请求格式错误（需 JSON）' }, 400); }
+    catch { return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง (ต้องเป็น JSON)' }, 400); }
 
     const { source } = body || {};
     if (source !== 'kv' && source !== 'static') {
-        return jsonResponse({ ok: false, error: 'source 必须是 "kv" 或 "static"' }, 400);
+        return jsonResponse({ ok: false, error: 'source ต้องเป็น "kv" หรือ "static"' }, 400);
     }
 
     const { key, ns } = await pickSourceKey(request, env);

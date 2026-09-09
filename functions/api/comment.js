@@ -1,20 +1,7 @@
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
 
 /* ================================================================================
- * /api/comment —— 单条卡片 comment 字段的精准 patch
- * ─────────────────────────────────────────────────────────────────────────────
- * A0 v2 改造（2026-05-17）：按身份选 namespace
- *   admin → admin:data_js / admin:data_source / admin:backup:*
- *   user  → user:<uid>:data_js / user:<uid>:data_source / user:<uid>:backup:*
- *          + 写完后 users[uid].hasData = true（best-effort）
- *
- * patchCommentInSource 与源码扫描器完全不变，schema 不动。
- *
- * 请求体（不变）：
- *   {
- *     path:    ['usbDriveData', 3, 'comment'] 或 [...customSections, 'cards', n, ...]
- *     comment: '新内容'        // 空串表示删除该字段
- *   }
+ * /api/comment —— การ patch ฟิลด์ comment ของการ์ดอย่างแม่นยำ
  * ================================================================================ */
 
 const MAX_BACKUPS = 100;
@@ -29,17 +16,13 @@ function nsKeys(ns) {
     };
 }
 
-/**
- * 模块作用域 flag：按 namespace 维护。语义同 save.js。
- */
 const _sourceConfirmedKv = new Set();
 
 export async function onRequestPost({ request, env }) {
     const fail = await requireAuth(request, env);
     if (fail) return fail;
-    if (!env.FAV_KV) return jsonResponse({ ok: false, error: '未绑定 KV(FAV_KV)' }, 500);
+    if (!env.FAV_KV) return jsonResponse({ ok: false, error: 'ไม่ได้เชื่อมต่อ KV (FAV_KV)' }, 500);
 
-    // 选 namespace
     const payload = await getPayload(request, env);
     const role = (payload && payload.role) || 'user';
     const uid  = payload && (payload.uid != null ? payload.uid : payload.u);
@@ -49,40 +32,37 @@ export async function onRequestPost({ request, env }) {
 
     let body;
     try { body = await request.json(); }
-    catch { return jsonResponse({ ok: false, error: '请求格式错误' }, 400); }
+    catch { return jsonResponse({ ok: false, error: 'รูปแบบคำขอไม่ถูกต้อง' }, 400); }
 
     const { path, comment } = body || {};
     if (!Array.isArray(path) || path.length < 2) {
-        return jsonResponse({ ok: false, error: '缺少或无效的 path' }, 400);
+        return jsonResponse({ ok: false, error: 'ไม่มี path หรือ path ไม่ถูกต้อง' }, 400);
     }
     if (typeof comment !== 'string') {
-        return jsonResponse({ ok: false, error: 'comment 必须是字符串' }, 400);
+        return jsonResponse({ ok: false, error: 'comment ต้องเป็นสตริง' }, 400);
     }
-    // 2026-05-23:允许 path 末尾是 'comment' 或 'pushedBy'(§13 标注删除)
     const targetField = path[path.length - 1];
     if (targetField !== 'comment' && targetField !== 'pushedBy') {
-        return jsonResponse({ ok: false, error: 'path 必须以 comment 或 pushedBy 结尾' }, 400);
+        return jsonResponse({ ok: false, error: 'path ต้องลงท้ายด้วย comment หรือ pushedBy' }, 400);
     }
-    // pushedBy 字段只允许"置空 = 删除",不能用此端点写入(防越权写)
     if (targetField === 'pushedBy' && comment !== '') {
-        return jsonResponse({ ok: false, error: 'pushedBy 字段只允许置空(删除)' }, 400);
+        return jsonResponse({ ok: false, error: 'ฟิลด์ pushedBy อนุญาตให้ตั้งเป็นค่าว่าง (ลบ) เท่านั้น' }, 400);
     }
 
     const old = await env.FAV_KV.get(KEYS.data);
-    if (!old) return jsonResponse({ ok: false, error: '数据文件不存在于 KV' }, 404);
+    if (!old) return jsonResponse({ ok: false, error: 'ไม่พบไฟล์ข้อมูลใน KV' }, 404);
 
     let patched;
     try {
         patched = patchCommentInSource(old, path, comment);
     } catch (e) {
-        return jsonResponse({ ok: false, error: '定位/修改失败: ' + (e.message || e) }, 400);
+        return jsonResponse({ ok: false, error: 'การระบุตำแหน่ง/แก้ไขล้มเหลว: ' + (e.message || e) }, 400);
     }
 
     if (patched === old) {
         return jsonResponse({ ok: true, unchanged: true, backup: null, namespace: ns });
     }
 
-    // 备份旧版本
     let backupName = null;
     if (old.trim()) {
         backupName = KEYS.backupP + timestamp();
@@ -92,7 +72,6 @@ export async function onRequestPost({ request, env }) {
         }
     }
 
-    // 主数据写入 + SOURCE_KEY 自动激活 → 并行
     const writes = [env.FAV_KV.put(KEYS.data, patched)];
     if (!_sourceConfirmedKv.has(ns)) {
         const currentSource = await env.FAV_KV.get(KEYS.source);
@@ -103,7 +82,6 @@ export async function onRequestPost({ request, env }) {
     }
     await Promise.all(writes);
 
-    // user 路径：标记 hasData=true（best-effort）
     if (isUser && uid) {
         try {
             const raw = await env.FAV_KV.get(USERS_KEY);
@@ -120,7 +98,6 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ ok: true, backup: backupName, namespace: ns });
 }
 
-// 北京时间时间戳（与 save.js 一致）
 function timestamp() {
     const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
     const p = n => String(n).padStart(2, '0');
@@ -140,64 +117,51 @@ async function pruneBackups(kv, prefix) {
     await Promise.all(toDelete.map(k => kv.delete(k.name)));
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════
- *  ★ 核心：JS 源码字符串级的 comment 字段 patcher
- *  ────────────────────────────────────────────────────────────────────────────
- *  策略：不用 eval/AST，直接带 token-aware 的线性扫描，遇到目标对象 { ... }
- *        找到 comment 字段就替换/删除；找不到就在末尾插入。
- * ════════════════════════════════════════════════════════════════════════════════ */
-
 function patchCommentInSource(src, path, comment) {
-    // ★ 新格式：path = ['sections', sectionIdx, 'cards', cardIdx, ..., 'comment']
-    // 兼容老格式：path = ['usbDriveData', cardIdx, ..., 'comment']
     const firstSeg = path[0];
 
     let pos;
     if (firstSeg === 'sections') {
-        // 新格式：从 var sections = [...] 开始
         const varPos = findTopLevelVarDecl(src, 'sections');
-        if (varPos < 0) throw new Error('未找到变量 sections');
+        if (varPos < 0) throw new Error('ไม่พบตัวแปร sections');
         const eqPos = src.indexOf('=', varPos);
-        if (eqPos < 0) throw new Error('变量声明缺少 =');
+        if (eqPos < 0) throw new Error('การประกาศตัวแปรไม่มีเครื่องหมาย =');
         pos = skipWs(src, eqPos + 1);
 
-        // 导航：跳过 path 中的 'sections'（已处理），从 path[1] 开始
         for (let i = 1; i < path.length - 1; i++) {
             const seg = path[i];
             if (typeof seg === 'number') {
-                if (src[pos] !== '[') throw new Error('导航第 ' + i + ' 段期望 [，实际: ' + src[pos]);
+                if (src[pos] !== '[') throw new Error('การนำทางส่วนที่ ' + i + ' คาดหวัง [ แต่พบ: ' + src[pos]);
                 pos = enterArrayIndex(src, pos, seg);
             } else if (typeof seg === 'string') {
-                if (src[pos] !== '{') throw new Error('导航第 ' + i + ' 段期望 {，实际: ' + src[pos]);
+                if (src[pos] !== '{') throw new Error('การนำทางส่วนที่ ' + i + ' คาดหวัง { แต่พบ: ' + src[pos]);
                 pos = enterObjectKey(src, pos, seg);
             } else {
-                throw new Error('path 段类型错误');
+                throw new Error('ประเภทส่วนของ path ไม่ถูกต้อง');
             }
         }
     } else {
-        // 老格式：path[0] 是顶级变量名
         const varPos = findTopLevelVarDecl(src, firstSeg);
-        if (varPos < 0) throw new Error('未找到变量 ' + firstSeg);
+        if (varPos < 0) throw new Error('ไม่พบตัวแปร ' + firstSeg);
         const eqPos = src.indexOf('=', varPos);
-        if (eqPos < 0) throw new Error('变量声明缺少 =');
+        if (eqPos < 0) throw new Error('การประกาศตัวแปรไม่มีเครื่องหมาย =');
         pos = skipWs(src, eqPos + 1);
 
         for (let i = 1; i < path.length - 1; i++) {
             const seg = path[i];
             if (typeof seg === 'number') {
-                if (src[pos] !== '[') throw new Error('导航第 ' + i + ' 段期望 [，实际: ' + src[pos]);
+                if (src[pos] !== '[') throw new Error('การนำทางส่วนที่ ' + i + ' คาดหวัง [ แต่พบ: ' + src[pos]);
                 pos = enterArrayIndex(src, pos, seg);
             } else if (typeof seg === 'string') {
-                if (src[pos] !== '{') throw new Error('导航第 ' + i + ' 段期望 {，实际: ' + src[pos]);
+                if (src[pos] !== '{') throw new Error('การนำทางส่วนที่ ' + i + ' คาดหวัง { แต่พบ: ' + src[pos]);
                 pos = enterObjectKey(src, pos, seg);
             } else {
-                throw new Error('path 段类型错误');
+                throw new Error('ประเภทส่วนของ path ไม่ถูกต้อง');
             }
         }
     }
 
-    if (src[pos] !== '{') throw new Error('目标卡片对象起始不是 {');
-    // path 末尾字段名(comment / pushedBy)透传给字段级 patcher
+    if (src[pos] !== '{') throw new Error('จุดเริ่มต้นของออบเจ็กต์การ์ดเป้าหมายไม่ใช่ {');
     const fieldName = path[path.length - 1];
     return updateCommentInObject(src, pos, comment, fieldName);
 }
@@ -207,7 +171,7 @@ function isIdChar(c) {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c === '_' || c === '$';
 }
 
-// 跳过空白 + 注释
+// ข้าม whitespace + ความคิดเห็น
 function skipWs(src, pos) {
     const n = src.length;
     while (pos < n) {
@@ -228,7 +192,7 @@ function skipWs(src, pos) {
     return pos;
 }
 
-// 从引号位置跳到字符串结束之后（支持 " ' `，处理 \ 转义）
+// ข้ามสตริงจากตำแหน่งเครื่องหมายคำพูดจนถึงจุดสิ้นสุด
 function skipString(src, pos) {
     const quote = src[pos];
     pos++;
@@ -239,12 +203,12 @@ function skipString(src, pos) {
         if (c === quote) return pos + 1;
         pos++;
     }
-    throw new Error('字符串未闭合 @ ' + pos);
+    throw new Error('สตริงไม่ได้ปิดสมบูรณ์ @ ' + pos);
 }
 
-// 跳过平衡的 {...} 或 [...]（内部正确处理字符串/注释）
+// ข้าม {...} หรือ [...] ที่สมดุล
 function skipBalanced(src, pos, open, close) {
-    if (src[pos] !== open) throw new Error('期望 ' + open);
+    if (src[pos] !== open) throw new Error('คาดหวัง ' + open);
     pos++;
     let depth = 1;
     const n = src.length;
@@ -265,18 +229,17 @@ function skipBalanced(src, pos, open, close) {
         else if (c === close) depth--;
         pos++;
     }
-    if (depth !== 0) throw new Error('括号未闭合');
+    if (depth !== 0) throw new Error('วงเล็บไม่ได้ปิดสมบูรณ์');
     return pos;
 }
 
-// 跳过一个完整 JS 值（对象/数组/字符串/数字/布尔/null 等）
+// ข้ามค่า JS หนึ่งค่า (object/array/string/number/boolean/null)
 function skipValue(src, pos) {
     pos = skipWs(src, pos);
     const c = src[pos];
     if (c === '{') return skipBalanced(src, pos, '{', '}');
     if (c === '[') return skipBalanced(src, pos, '[', ']');
     if (c === '"' || c === "'" || c === '`') return skipString(src, pos);
-    // 字面量：读到分隔符
     const n = src.length;
     while (pos < n) {
         const ch = src[pos];
@@ -290,7 +253,7 @@ function skipValue(src, pos) {
 
 function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-// 查找顶级 const/let/var <name> = ... 的位置（跳过字符串/注释中的假阳性）
+// ค้นหาตำแหน่งการประกาศตัวแปรระดับบนสุด const/let/var <name> = ...
 function findTopLevelVarDecl(src, varName) {
     const pattern = new RegExp('^(const|let|var)\\s+' + escapeRegExp(varName) + '\\s*=');
     const n = src.length;
@@ -317,22 +280,22 @@ function findTopLevelVarDecl(src, varName) {
     return -1;
 }
 
-// 从数组 [ 位置进入第 idx 个元素，返回该元素起始
+// เข้าถึงสมาชิกตัวที่ idx ในอาร์เรย์
 function enterArrayIndex(src, pos, idx) {
-    if (src[pos] !== '[') throw new Error('期望 [');
+    if (src[pos] !== '[') throw new Error('คาดหวัง [');
     pos++;
     pos = skipWs(src, pos);
     for (let i = 0; i < idx; i++) {
         pos = skipValue(src, pos);
         pos = skipWs(src, pos);
-        if (src[pos] !== ',') throw new Error('数组索引越界：需要 ' + idx + '，到 ' + i + ' 就结束');
+        if (src[pos] !== ',') throw new Error('ดัชนีอาร์เรย์เกินขอบเขต: ต้องการ ' + idx + ' แต่สิ้นสุดที่ ' + i);
         pos++;
         pos = skipWs(src, pos);
     }
     return pos;
 }
 
-// 读取对象键（标识符 或 "..."/'...' 字面量）
+// อ่านคีย์ของออบเจ็กต์
 function readKey(src, pos) {
     const c = src[pos];
     if (c === '"' || c === "'" || c === '`') {
@@ -343,37 +306,37 @@ function readKey(src, pos) {
     const n = src.length;
     const start = pos;
     while (pos < n && isIdChar(src[pos])) pos++;
-    if (pos === start) throw new Error('无法读取键名 @ ' + pos);
+    if (pos === start) throw new Error('ไม่สามารถอ่านชื่อคีย์ได้ @ ' + pos);
     return { name: src.substring(start, pos), end: pos };
 }
 
-// 从对象 { 位置进入键 key 的值位置
+// เข้าถึงค่าของคีย์ key ในออบเจ็กต์
 function enterObjectKey(src, pos, key) {
-    if (src[pos] !== '{') throw new Error('期望 {');
+    if (src[pos] !== '{') throw new Error('คาดหวัง {');
     pos++;
     const n = src.length;
     while (pos < n) {
         pos = skipWs(src, pos);
-        if (src[pos] === '}') throw new Error('对象中未找到键 ' + key);
+        if (src[pos] === '}') throw new Error('ไม่พบคีย์ในออบเจ็กต์ ' + key);
         const keyInfo = readKey(src, pos);
         pos = keyInfo.end;
         pos = skipWs(src, pos);
-        if (src[pos] !== ':') throw new Error('键 ' + keyInfo.name + ' 后期望 :');
+        if (src[pos] !== ':') throw new Error('หลังคีย์ ' + keyInfo.name + ' คาดหวัง :');
         pos++;
         pos = skipWs(src, pos);
         if (keyInfo.name === key) return pos;
         pos = skipValue(src, pos);
         pos = skipWs(src, pos);
         if (src[pos] === ',') { pos++; continue; }
-        if (src[pos] === '}') throw new Error('对象中未找到键 ' + key);
+        if (src[pos] === '}') throw new Error('ไม่พบคีย์ในออบเจ็กต์ ' + key);
     }
-    throw new Error('对象解析失败');
+    throw new Error('การแยกวิเคราะห์ออบเจ็กต์ล้มเหลว');
 }
 
-// 在 objStart 指向的对象里:替换/删除/插入指定字段(默认 'comment',2026-05-23 加 fieldName 参数支持 'pushedBy')
+// แก้ไข/ลบ/แทรกฟิลด์ในออบเจ็กต์
 function updateCommentInObject(src, objStart, newComment, fieldName) {
     if (!fieldName) fieldName = 'comment';
-    if (src[objStart] !== '{') throw new Error('期望 {');
+    if (src[objStart] !== '{') throw new Error('คาดหวัง {');
     const n = src.length;
     let pos = objStart + 1;
     let fieldStart = -1, fieldValStart = -1, fieldValEnd = -1;
@@ -385,7 +348,7 @@ function updateCommentInObject(src, objStart, newComment, fieldName) {
         const keyInfo = readKey(src, pos);
         pos = keyInfo.end;
         pos = skipWs(src, pos);
-        if (src[pos] !== ':') throw new Error('键 ' + keyInfo.name + ' 后期望 :');
+        if (src[pos] !== ':') throw new Error('หลังคีย์ ' + keyInfo.name + ' คาดหวัง :');
         pos++;
         pos = skipWs(src, pos);
         const valStart = pos;
@@ -404,7 +367,6 @@ function updateCommentInObject(src, objStart, newComment, fieldName) {
 
     if (fieldStart >= 0) {
         if (newComment === '') {
-            // 删除整个字段(含前后多余逗号)
             let delEnd = fieldValEnd;
             const after = skipWs(src, delEnd);
             if (src[after] === ',') {
@@ -417,19 +379,15 @@ function updateCommentInObject(src, objStart, newComment, fieldName) {
                 }
                 delEnd = after;
             }
-            // 删 pushedBy 时,同步删紧邻的 pushedAt(若存在)— 配对清理,避免孤儿
             let cleaned = src.substring(0, fieldStart) + src.substring(delEnd);
             if (fieldName === 'pushedBy') {
-                // 重新定位被改后的对象起点(objStart 还有效,因为我们在它之后才编辑)
                 cleaned = removeFieldFromObject(cleaned, objStart, 'pushedAt');
             }
             return cleaned;
         }
-        // 替换值
         return src.substring(0, fieldValStart) + JSON.stringify(newComment) + src.substring(fieldValEnd);
     }
 
-    // 对象中无该字段
     if (newComment === '') return src;
     const objEnd = skipBalanced(src, objStart, '{', '}');
     const braceIdx = objEnd - 1;
@@ -449,8 +407,7 @@ function updateCommentInObject(src, objStart, newComment, fieldName) {
     return src.substring(0, braceIdx) + insertion + src.substring(braceIdx);
 }
 
-// 简化版:从对象里删除某字段(2026-05-23 用于配对清理 pushedAt)
-// 不会插入,字段不存在则原样返回
+// ลบฟิลด์ออกจากออบเจ็กต์
 function removeFieldFromObject(src, objStart, fieldName) {
     if (src[objStart] !== '{') return src;
     const n = src.length;

@@ -3,7 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import MangaView from '@/views/MangaView.vue'
 import NotesView from '@/views/NotesView.vue'
-import ToolsView from '@/views/ToolsView.vue'
 import SettingsLayout from '@/views/settings/SettingsLayout.vue'
 
 const router = createRouter({
@@ -36,15 +35,6 @@ const router = createRouter({
     {
       path: '/c',
       redirect: '/settings',
-    },
-    {
-      path: '/t',
-      name: 'tools',
-      component: ToolsView,
-    },
-    {
-      path: '/tool',
-      redirect: '/t',
     },
     {
       path: '/:pathMatch(.*)*',
